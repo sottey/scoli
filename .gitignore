@@ -32,7 +32,6 @@ go.work.sum
 # .vscode/
 .DS_Store
 tmp/***
-data/***
 docs/DOCKER_HUB_PUSH.md
 vulns.md
 .codex_context.md

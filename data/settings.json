@@ -1,0 +1,11 @@
+{
+  "version": 6,
+  "darkMode": true,
+  "defaultView": "split",
+  "sidebarWidth": 300,
+  "defaultFolder": "Inbox",
+  "showTemplates": true,
+  "notesSortBy": "name",
+  "notesSortOrder": "asc",
+  "externalCommandsPath": ""
+}
