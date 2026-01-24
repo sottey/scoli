@@ -1,0 +1,25 @@
+services:
+  scoli:
+    build:
+      context: ..
+      dockerfile: ../Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../data:/notes
+
+  mcp:
+    build:
+      context: ..
+      dockerfile: mcp/Dockerfile
+    depends_on:
+      - scoli
+    ports:
+      - "8090:8090"
+    command:
+      - "--api-base-url"
+      - "http://scoli:8080/api/v1"
+      - "--transport"
+      - "http"
+      - "--listen"
+      - "0.0.0.0:8090"

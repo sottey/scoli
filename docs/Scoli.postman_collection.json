@@ -1,0 +1,267 @@
+{
+  "info": {
+    "name": "Scoli API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/health"
+      }
+    },
+    {
+      "name": "Tree (full)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/tree"
+      }
+    },
+    {
+      "name": "Tree (path)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/tree?path=Daily"
+      }
+    },
+    {
+      "name": "Get Note",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/notes?path=Daily/2026-01-06.md"
+      }
+    },
+    {
+      "name": "Create Note",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"path\": \"Daily/2026-01-06\",\n  \"content\": \"# Example\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/notes"
+      }
+    },
+    {
+      "name": "Update Note",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"path\": \"Daily/2026-01-06.md\",\n  \"content\": \"# Updated\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/notes"
+      }
+    },
+    {
+      "name": "Rename Note",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"path\": \"Projects/Spec.md\",\n  \"newPath\": \"Projects/Spec-v2\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/notes/rename"
+      }
+    },
+    {
+      "name": "Delete Note",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/notes?path=Projects/Spec-v2.md"
+      }
+    },
+    {
+      "name": "Get File",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/files?path=attachments/light.png"
+      }
+    },
+    {
+      "name": "Create Folder",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"path\": \"Projects/NewFolder\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/folders"
+      }
+    },
+    {
+      "name": "Rename Folder",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"path\": \"Projects/NewFolder\",\n  \"newPath\": \"Projects/RenamedFolder\"\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/folders"
+      }
+    },
+    {
+      "name": "Delete Folder",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/folders?path=Projects/RenamedFolder"
+      }
+    },
+    {
+      "name": "Search",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/search?query=meeting"
+      }
+    },
+    {
+      "name": "Tags",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/tags"
+      }
+    },
+    {
+      "name": "Tasks (all)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/tasks"
+      }
+    },
+    {
+      "name": "Tasks (for note)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/tasks/for-note?path=Daily/2026-01-06.md"
+      }
+    },
+    {
+      "name": "Tasks Toggle",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"path\": \"Daily/2026-01-06.md\",\n  \"lineNumber\": 12,\n  \"lineHash\": \"\",\n  \"completed\": true\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/tasks/toggle"
+      }
+    },
+    {
+      "name": "Tasks Archive",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/tasks/archive"
+      }
+    },
+    {
+      "name": "Settings Get",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/api/v1/settings"
+      }
+    },
+    {
+      "name": "Settings Update",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"darkMode\": true,\n  \"defaultView\": \"edit\",\n  \"sidebarWidth\": 320,\n  \"defaultFolder\": \"Projects\",\n  \"showTemplates\": true\n}",
+          "options": {
+            "raw": { "language": "json" }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/settings"
+      }
+    }
+  ]
+}

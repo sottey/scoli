@@ -1,0 +1,23 @@
+services:
+  scoli:
+    image: sottey/scoli:latest
+    container_name: Scoli
+    restart: unless-stopped
+    ports:
+      - 8082:8080
+    user: "1000:1000"
+    environment:
+      TZ: America/Los_Angeles
+    volumes:
+      - /home/sottey/docker-data/scoli-data/data:/notes
+    labels:
+      - homepage.group=Strongbox
+      - homepage.name=(8082) Scoli
+      - homepage.icon=sh-nanote.png
+      - homepage.href=http://192.168.7.215:8082/
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks: {}

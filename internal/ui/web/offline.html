@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2f5fd3" />
+  <title>Scoli Offline</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: "Space Grotesk", "Avenir Next", "Futura", sans-serif;
+      background: #f6f7fb;
+      color: #12161c;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+    }
+    .card {
+      max-width: 480px;
+      padding: 24px;
+      border-radius: 16px;
+      border: 1px solid rgba(215, 219, 226, 0.9);
+      background: #ffffff;
+      box-shadow: 0 12px 40px rgba(21, 33, 52, 0.12);
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+    p {
+      margin: 0 0 12px;
+      color: #4e5563;
+      line-height: 1.4;
+    }
+    button {
+      border: 1px solid rgba(47, 95, 211, 0.5);
+      border-radius: 999px;
+      padding: 8px 16px;
+      background: #ffffff;
+      color: #1d3f99;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background: rgba(47, 95, 211, 0.1);
+    }
+    code {
+      font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 13px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        background: #0c111b;
+        color: #e2e8f0;
+      }
+      .card {
+        background: #0f172a;
+        border-color: #273247;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+      }
+      p {
+        color: #94a3b8;
+      }
+      button {
+        background: #0f172a;
+        color: #e2e8f0;
+        border-color: rgba(96, 165, 250, 0.6);
+      }
+      button:hover {
+        background: rgba(96, 165, 250, 0.2);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>You're offline</h1>
+    <p>Scoli couldn't reach the API server.</p>
+    <p>Start the server, then reload this page.</p>
+    <button type="button" id="retry">Retry</button>
+    <p>Expected URL: <code>http://localhost:8080</code></p>
+  </div>
+  <script>
+    const retryButton = document.getElementById("retry");
+    if (retryButton) {
+      retryButton.addEventListener("click", () => {
+        window.location.reload();
+      });
+    }
+  </script>
+</body>
+</html>

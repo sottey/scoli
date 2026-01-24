@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#2f5fd3" />
+  <title>Scoli</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="manifest" href="/manifest.json?v=6" />
+  <link rel="stylesheet" href="/vendor/highlight.css" />
+  <link rel="stylesheet" href="/styles.css?v=6" />
+</head>
+<body>
+  <div id="app" class="app" data-view="split">
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <div class="brand">
+            <button id="brand-btn" class="brand-btn" type="button" aria-label="Reload">
+              <img class="brand-logo brand-logo-light" src="/logo-light.png" alt="Scoli" />
+              <img class="brand-logo brand-logo-dark" src="/logo-dark.png" alt="Scoli" />
+            </button>
+          </div>
+          <div class="sidebar-actions">
+          </div>
+        </div>
+        <div class="search-row">
+          <input id="search-input" class="search-input" type="text" placeholder="Search notes and tasks" />
+          <button id="search-btn" class="ghost icon-btn" title="Search" aria-label="Search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.71.71l.27.28v.79l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/>
+            </svg>
+          </button>
+        </div>
+        <div id="search-results" class="search-results hidden"></div>
+      </div>
+      <div id="tree-container" class="tree"></div>
+      <div class="sidebar-footer">
+        <button id="sidebar-toggle" class="ghost icon-btn" title="Collapse sidebar" aria-label="Collapse sidebar">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h6v14H4V5zm10 0h6v14h-6V5z"/>
+          </svg>
+        </button>
+        <button id="tree-toggle-btn" class="ghost icon-btn" title="Toggle all nodes" aria-label="Toggle all nodes">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 4h10v2H7V4zm0 14h10v2H7v-2zM4 7h16v10H4V7zm2 2v6h12V9H6z"/>
+          </svg>
+        </button>
+        <button id="settings-btn" class="ghost icon-btn" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19.14 12.94a7.5 7.5 0 0 0 .05-.94 7.5 7.5 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.06 7.06 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54a7.06 7.06 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.5 7.5 0 0 0-.05.94 7.5 7.5 0 0 0 .05.94L2.82 14.5a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.12-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.56zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+    <div id="sidebar-resizer" class="resizer resizer-vertical" aria-hidden="true"></div>
+    <main class="main">
+      <header class="main-header">
+        <div class="note-info">
+          <div id="note-path" class="note-path">No note selected</div>
+          <button id="save-btn" class="primary" disabled>Save</button>
+        </div>
+        <div class="header-actions">
+          <button id="scratch-btn" class="ghost icon-btn" type="button" title="Open scratch pad" aria-label="Open scratch pad">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 3h10a2 2 0 0 1 2 2v10.5l-5.5 5.5H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm10 12.5V5H5v14h5.5V15.5H15zm-3.5 1.5h2.1l2.9-2.9v2.1L13.1 19z"/>
+            </svg>
+          </button>
+          <button id="move-completed-btn" class="ghost move-completed-btn" type="button" title="Move completed tasks to Done">
+            Move Completed
+          </button>
+          <button id="date-pill" class="date-pill" type="button" title="Open today's note"></button>
+          <button id="calendar-btn" class="ghost icon-btn calendar-btn" type="button" title="Open date picker" aria-label="Open date picker">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1zm12 8H5v9h14v-9zM5 8h14V6H5v2z"/>
+            </svg>
+          </button>
+          <div id="date-popover" class="date-popover hidden" role="dialog" aria-label="Pick date">
+            <input id="date-picker" class="date-picker" type="date" />
+          </div>
+          <div class="view-selector" role="group" aria-label="View selector">
+            <button class="view-btn" data-view="edit" title="Edit">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17.25V20h2.75L17.81 8.94l-2.75-2.75L4 17.25zm15.71-9.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 2.75 2.75 1.99-1.66z"/></svg>
+            </button>
+            <button class="view-btn" data-view="preview" title="Preview">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>
+            </button>
+            <button class="view-btn" data-view="split" title="Split">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h7v14H4V5zm9 0h7v14h-7V5z"/></svg>
+            </button>
+          </div>
+        </div>
+      </header>
+      <div id="status-banners" class="status-banners hidden">
+        <div id="offline-banner" class="status-banner status-banner-offline hidden">
+          <span>Server unreachable. Trying to reconnect...</span>
+          <button id="offline-retry" class="ghost" type="button">Retry</button>
+        </div>
+        <div id="update-banner" class="status-banner status-banner-update hidden">
+          <span>Update available.</span>
+          <button id="update-reload" class="ghost" type="button">Reload</button>
+        </div>
+      </div>
+      <div id="update-toast" class="update-toast hidden">Update available. Reload to apply.</div>
+      <div id="app-toast" class="app-toast hidden" role="status" aria-live="polite"></div>
+      <section id="main-content" class="main-content">
+        <div id="editor-pane" class="pane">
+          <div id="settings-panel" class="settings-panel hidden">
+            <h2 class="settings-title">Settings</h2>
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title">Display</h3>
+                <p class="settings-section-desc">Theme and editor defaults.</p>
+              </div>
+              <div class="settings-grid">
+                <label class="settings-row">
+                  <input id="settings-dark-mode" type="checkbox" />
+                  <span>Dark Mode</span>
+                </label>
+                <label class="settings-row">
+                  <input id="settings-show-templates" type="checkbox" />
+                  <span>Show Templates</span>
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">Default View</span>
+                  <select id="settings-default-view" class="settings-input">
+                    <option value="edit">Edit</option>
+                    <option value="preview">Preview</option>
+                    <option value="split">Split</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title">Notes</h3>
+                <p class="settings-section-desc">Sorting for the notes tree.</p>
+              </div>
+              <div class="settings-grid">
+                <label class="settings-field">
+                  <span class="settings-label">Sort By</span>
+                  <select id="settings-notes-sort-by" class="settings-input">
+                    <option value="name">Name</option>
+                    <option value="created">Created</option>
+                    <option value="updated">Updated</option>
+                  </select>
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">Sort Order</span>
+                  <select id="settings-notes-sort-order" class="settings-input">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title">Folders</h3>
+                <p class="settings-section-desc">Startup folder selection.</p>
+              </div>
+              <div class="settings-grid">
+                <label class="settings-field">
+                  <span class="settings-label">Default Folder</span>
+                  <input id="settings-default-folder" class="settings-input" type="text" placeholder="Folder/Subfolder" />
+                </label>
+              </div>
+            </div>
+            <div class="settings-section settings-meta">
+              <div class="settings-meta-row">
+                <div id="app-version" class="app-version"></div>
+                <form id="logout-form" class="logout-form" method="post" action="/logout">
+                  <button class="ghost logout-btn" type="submit" title="Log out">Log out</button>
+                </form>
+              </div>
+            </div>
+          </div>
+          <textarea id="editor" class="editor" spellcheck="false"></textarea>
+        </div>
+        <div id="pane-resizer" class="resizer resizer-vertical" aria-hidden="true"></div>
+        <div id="preview-pane" class="pane">
+          <div id="asset-preview" class="asset-preview hidden"></div>
+          <div id="pdf-preview" class="pdf-preview hidden"></div>
+          <div id="csv-preview" class="csv-preview hidden"></div>
+          <div id="preview" class="preview"></div>
+          <div id="task-list" class="task-list hidden"></div>
+          <div id="summary-panel" class="summary-panel hidden"></div>
+          <div id="journal-panel" class="journal-panel hidden">
+            <div id="journal-compose" class="journal-compose">
+              <div class="journal-compose-main">
+                <textarea
+                  id="journal-input"
+                  class="journal-input"
+                  rows="3"
+                  placeholder="Write a journal entry..."
+                ></textarea>
+                <div class="journal-compose-hint">Enter to save, Opt-Enter for a new line</div>
+              </div>
+              <div class="journal-compose-actions">
+                <button id="journal-archive-all" class="ghost" type="button">Archive All</button>
+                <button id="journal-save" class="primary" type="button">Save</button>
+              </div>
+            </div>
+            <div id="journal-feed" class="journal-feed"></div>
+          </div>
+        </div>
+      </section>
+      <div id="tag-bar" class="tag-bar hidden">
+        <button id="tag-add-btn" class="tag-add-btn" title="Add tag" aria-label="Add tag">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5h2v14h-2zM5 11h14v2H5z"/>
+          </svg>
+        </button>
+        <div id="tag-pills" class="tag-pills"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="context-menu" class="context-menu hidden" role="menu"></div>
+  <div id="whats-new-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="What's new">
+    <div class="modal-backdrop" data-action="close"></div>
+    <div class="modal-card scratch-modal-card" role="document">
+      <div class="modal-header">
+        <div class="modal-title">What's new</div>
+        <button id="whats-new-close" class="ghost icon-btn" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6l-12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <ul id="whats-new-list" class="whats-new-list"></ul>
+      </div>
+      <div class="modal-actions">
+        <button id="whats-new-confirm" class="primary" type="button">Got it</button>
+      </div>
+    </div>
+  </div>
+  <div id="inbox-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-label="Add to Inbox">
+    <div class="modal-backdrop" data-action="close"></div>
+    <div class="modal-card scratch-modal-card" role="document">
+      <div class="modal-header">
+        <div class="modal-title">Add to Inbox</div>
+        <button id="inbox-dialog-close" class="ghost icon-btn" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6l-12 12"/>
+          </svg>
+        </button>
+      </div>
+      <textarea id="inbox-dialog-text" class="modal-textarea" rows="6" placeholder="Type a note, task, or markdown..."></textarea>
+      <div class="modal-actions">
+        <button id="inbox-dialog-cancel" class="ghost" type="button">Cancel</button>
+        <button id="inbox-dialog-save" class="primary" type="button">Add</button>
+      </div>
+    </div>
+  </div>
+  <div id="scratch-dialog" class="modal hidden" role="dialog" aria-modal="true" aria-label="Scratch pad">
+    <div class="modal-backdrop" data-action="close"></div>
+    <div class="modal-card scratch-modal-card" role="document">
+      <div class="modal-header">
+        <div class="modal-title">Scratch Pad</div>
+        <button id="scratch-dialog-close" class="ghost icon-btn" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <textarea id="scratch-dialog-text" class="modal-textarea" rows="12" placeholder="Jot anything here..."></textarea>
+      <div class="modal-actions">
+        <button id="scratch-dialog-cancel" class="ghost" type="button">Close</button>
+        <button id="scratch-dialog-move" class="ghost" type="button">Move To Inbox</button>
+        <button id="scratch-dialog-save" class="primary" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+  <div id="command-palette" class="modal hidden" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="modal-backdrop" data-action="close"></div>
+    <div class="modal-card command-card" role="document">
+      <div class="modal-header">
+        <div class="modal-title">Command</div>
+        <button id="command-close" class="ghost icon-btn" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <input id="command-input" class="command-input" type="text" placeholder="Type a command or &gt; to search notes" autocomplete="off" />
+      <div id="command-results" class="command-results"></div>
+    </div>
+  </div>
+
+  <script src="/vendor/markdown-it.min.js"></script>
+  <script src="/vendor/highlight.min.js"></script>
+  <script src="/app.js?v=6"></script>
+</body>
+</html>
