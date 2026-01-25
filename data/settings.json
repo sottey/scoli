@@ -4,7 +4,7 @@
   "defaultView": "split",
   "sidebarWidth": 300,
   "defaultFolder": "Inbox",
-  "showTemplates": true,
+  "showTemplates": false,
   "notesSortBy": "name",
   "notesSortOrder": "asc",
   "externalCommandsPath": ""
