@@ -457,6 +457,20 @@ Response:
 ]
 ```
 
+### Mentions
+
+`GET /mentions`
+
+Returns mention groups with matching notes.
+
+Response:
+
+```json
+[
+  { "mention": "alice", "notes": [{ "path": "Daily/2026-01-06.md", "name": "2026-01-06.md" }] }
+]
+```
+
 ### Sheets
 
 #### Tree

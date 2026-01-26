@@ -19,6 +19,7 @@ var allowedRootIconKeys = map[string]struct{}{
 	"daily":   {},
 	"tasks":   {},
 	"tags":    {},
+	"mentions": {},
 	"journal": {},
 	"inbox":   {},
 	"sheets":  {},

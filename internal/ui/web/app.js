@@ -90,6 +90,7 @@ let currentActivePath = "";
 let currentTree = null;
 let currentSheetsTree = null;
 let currentTags = [];
+let currentMentions = [];
 let currentTasks = [];
 let journalEntries = [];
 let journalSummary = { archives: [], totalCount: 0 };
@@ -3595,6 +3596,142 @@ function buildTagNote(note, depth) {
   return wrapper;
 }
 
+function buildMentionsRoot(mentions) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "tree-node folder mention-root collapsed";
+
+  const row = document.createElement("div");
+  row.className = "node-row";
+  row.style.paddingLeft = "12px";
+  row.dataset.path = "__mentions__";
+  row.dataset.type = "mention-root";
+
+  const caret = document.createElement("span");
+  caret.className = "folder-icon";
+  row.appendChild(caret);
+
+  const name = document.createElement("span");
+  name.className = "node-name";
+  name.textContent = formatCountLabel("Mentions", (mentions || []).length);
+  row.appendChild(name);
+
+  wrapper.appendChild(row);
+
+  applyRootIconToRow(row, "mentions");
+
+  const children = document.createElement("div");
+  children.className = "node-children";
+  (mentions || []).forEach((group) => {
+    children.appendChild(buildMentionGroup(group, 1));
+  });
+  wrapper.appendChild(children);
+
+  row.addEventListener("click", () => {
+    hideContextMenu();
+    wrapper.classList.toggle("collapsed");
+    const totalMentions = (mentions || []).length;
+    const noteSet = new Set();
+    let totalEntries = 0;
+    (mentions || []).forEach((group) => {
+      (group.notes || []).forEach((note) => {
+        if (note && note.path) {
+          noteSet.add(note.path);
+        }
+        totalEntries += 1;
+      });
+    });
+    currentActivePath = "__mentions__";
+    setActiveNode(currentActivePath);
+    showSummary("Mentions", [
+      { label: "Mentions", value: totalMentions },
+      { label: "Mentioned Notes", value: noteSet.size },
+      { label: "Mention Entries", value: totalEntries },
+    ]);
+  });
+
+  row.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    const isCollapsed = wrapper.classList.contains("collapsed");
+    showContextMenu(event.clientX, event.clientY, [
+      ...rootIconMenuItems("mentions", row),
+      {
+        label: isCollapsed ? "Expand" : "Collapse",
+        action: () => wrapper.classList.toggle("collapsed"),
+      },
+    ]);
+  });
+
+  return wrapper;
+}
+
+function buildMentionGroup(group, depth) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "tree-node folder mention-group";
+  wrapper.classList.add("collapsed");
+
+  const row = document.createElement("div");
+  row.className = "node-row";
+  row.style.paddingLeft = "10px";
+  row.dataset.path = `mention:${group.mention}`;
+  row.dataset.type = "mention";
+  row.dataset.mention = group.mention;
+
+  const caret = document.createElement("span");
+  caret.className = "folder-icon";
+  row.appendChild(caret);
+
+  const name = document.createElement("span");
+  name.className = "node-name tag-label";
+  name.textContent = formatCountLabel(`@${group.mention}`, (group.notes || []).length);
+  name.style.backgroundColor = getTagColor(group.mention);
+  row.appendChild(name);
+
+  wrapper.appendChild(row);
+
+  const children = document.createElement("div");
+  children.className = "node-children";
+  (group.notes || []).forEach((note) => {
+    children.appendChild(buildTagNote(note, depth + 1));
+  });
+  wrapper.appendChild(children);
+
+  row.addEventListener("click", () => {
+    hideContextMenu();
+    wrapper.classList.toggle("collapsed");
+    const totalMentions = (currentMentions || []).length;
+    const noteSet = new Set();
+    let totalEntries = 0;
+    (currentMentions || []).forEach((item) => {
+      (item.notes || []).forEach((note) => {
+        if (note && note.path) {
+          noteSet.add(note.path);
+        }
+        totalEntries += 1;
+      });
+    });
+    currentActivePath = "__mentions__";
+    setActiveNode(currentActivePath);
+    showSummary("Mentions", [
+      { label: "Mentions", value: totalMentions },
+      { label: "Mentioned Notes", value: noteSet.size },
+      { label: "Mention Entries", value: totalEntries },
+    ]);
+  });
+
+  row.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    const isCollapsed = wrapper.classList.contains("collapsed");
+    showContextMenu(event.clientX, event.clientY, [
+      {
+        label: isCollapsed ? "Expand" : "Collapse",
+        action: () => wrapper.classList.toggle("collapsed"),
+      },
+    ]);
+  });
+
+  return wrapper;
+}
+
 function buildInboxNode() {
   const wrapper = document.createElement("div");
   wrapper.className = "tree-node inbox-root";
@@ -3870,7 +4007,7 @@ function buildDailyNode(node) {
   return wrapper;
 }
 
-function renderTree(tree, tags, tasks) {
+function renderTree(tree, tags, mentions, tasks) {
   treeContainer.innerHTML = "";
   if (tree) {
     treeContainer.appendChild(buildInboxNode());
@@ -3894,6 +4031,10 @@ function renderTree(tree, tags, tasks) {
   if (tags) {
     const tagRoot = buildTagRoot(tags);
     treeContainer.appendChild(tagRoot);
+  }
+  if (mentions) {
+    const mentionRoot = buildMentionsRoot(mentions);
+    treeContainer.appendChild(mentionRoot);
   }
   setActiveNode(currentActivePath);
 }
@@ -3944,6 +4085,7 @@ function expandAllRootNodes() {
     ".tree-node.sheets-root",
     ".tree-node.task-root",
     ".tree-node.tag-root",
+    ".tree-node.mention-root",
     ".tree-node.journal-root",
   ];
   treeContainer.querySelectorAll(rootSelectors.join(",")).forEach((node) => {
@@ -3968,7 +4110,7 @@ function restoreExpandedTreePaths(paths) {
 }
 
 function refreshTasksTree() {
-  renderTree(currentTree, currentTags, currentTasks);
+  renderTree(currentTree, currentTags, currentMentions, currentTasks);
   if (currentMode === "tasks") {
     restoreTaskSelection(currentActivePath, currentTasks);
   }
@@ -3979,14 +4121,15 @@ function refreshTasksAndTagsPreserveView(options = {}) {
   const activePathSnapshot = currentActivePath;
   const expandedPaths = getExpandedTreePaths();
   const { suppressNotice = false } = options;
-  return Promise.all([apiFetch("/tasks"), apiFetch("/tags")])
-    .then(([tasksResponse, tags]) => {
+  return Promise.all([apiFetch("/tasks"), apiFetch("/tags"), apiFetch("/mentions")])
+    .then(([tasksResponse, tags, mentions]) => {
       if (tasksResponse.notice && !suppressNotice) {
         alert(tasksResponse.notice);
       }
       currentTags = tags || [];
+      currentMentions = mentions || [];
       currentTasks = tasksResponse.tasks || [];
-      renderTree(currentTree, currentTags, currentTasks);
+      renderTree(currentTree, currentTags, currentMentions, currentTasks);
       restoreExpandedTreePaths(expandedPaths);
       if (modeSnapshot === "tasks") {
         restoreTaskSelection(activePathSnapshot, currentTasks);
@@ -4060,7 +4203,9 @@ function setActiveNode(path) {
       row.dataset.type === "sheet-folder" ||
       row.dataset.type === "task-root" ||
       row.dataset.type === "tag-root" ||
+      row.dataset.type === "mention-root" ||
       row.dataset.type === "task-group" ||
+      row.dataset.type === "mention" ||
       row.dataset.type === "folder";
     row.classList.toggle("active", isSelectable && row.dataset.path === path);
   });
@@ -4108,10 +4253,11 @@ async function loadTree(path = "") {
     const previousActivePath = currentActivePath;
     const expandedPaths = getExpandedTreePaths();
     const query = path ? `?path=${encodeURIComponent(path)}` : "";
-    const [tree, sheetsTree, tags, tasksResponse, settingsResponse, archiveResponse] = await Promise.all([
+    const [tree, sheetsTree, tags, mentions, tasksResponse, settingsResponse, archiveResponse] = await Promise.all([
       apiFetch(`/tree${query}`),
       apiFetch("/sheets/tree"),
       apiFetch("/tags"),
+      apiFetch("/mentions"),
       apiFetch("/tasks"),
       apiFetch("/settings"),
       apiFetch("/journal/archives"),
@@ -4128,6 +4274,7 @@ async function loadTree(path = "") {
     currentTree = tree;
     currentSheetsTree = sheetsTree;
     currentTags = tags;
+    currentMentions = mentions || [];
     currentTasks = tasksResponse.tasks || [];
     journalSummary = {
       archives: archiveResponse.archives || [],
@@ -4135,7 +4282,7 @@ async function loadTree(path = "") {
         ? archiveResponse.totalCount
         : (archiveResponse.archives || []).length,
     };
-    renderTree(currentTree, currentTags, tasksResponse.tasks || []);
+    renderTree(currentTree, currentTags, currentMentions, tasksResponse.tasks || []);
     if (restoreTaskSelection(previousActivePath, currentTasks)) {
       restoreExpandedTreePaths(expandedPaths);
       return;
@@ -4180,7 +4327,7 @@ async function loadTree(path = "") {
     }
     if (currentTree && currentTree.type === "folder" && currentTree.children) {
       const defaultFolder = (currentSettings.defaultFolder || "").trim();
-      const isTagPath = previousActivePath === "__tags__";
+      const isTagPath = previousActivePath === "__tags__" || previousActivePath === "__mentions__";
       let targetNode = null;
       if (!isTagPath) {
         if (previousActivePath === "") {

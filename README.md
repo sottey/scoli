@@ -22,8 +22,9 @@
 
 - Local notes stored as plain `.md` files
 - Fast tree navigation, split view editing, and live preview
-- Tags and task parsing with project, mention, due date, and priority markers
+- Tags, mentions, and task parsing with project, mention, due date, and priority markers
 - Daily notes support with date picker and templates
+- Sheets with `.jsh` storage and CSV import/export
 - Global scratch pad modal stored as `scratch.md` (hidden from the tree)
 - Journal feed stored in `journal/journal.json` with inline edit, delete, and archive
 - Command palette with built-in actions and optional external commands file

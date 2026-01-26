@@ -7,13 +7,15 @@ pane that supports edit, preview, or split view.
 This file documents the current project shape and interaction model.
 
 ## Product behavior (high level)
-- Left sidebar shows the `Notes/` directory tree (folders + `.md` files) plus a
-  tags root.
+- Left sidebar shows the `Notes/` directory tree (folders + `.md` files) plus
+  Tags and Mentions roots.
 - Left sidebar shows a `Tasks` root with project groups, a "Today" group,
   a "Someday" group, a "No Project" group, a "Completed" group, and an "All" group (always last).
 - Left sidebar shows a `Sheets` root with spreadsheet files (`.jsh`) stored under `Sheets/`.
 - Left sidebar includes a `Journal` root below Tasks and above Tags that opens a
   rolling journal feed, with archive files shown as children under the Journal root.
+- Left sidebar includes a `Mentions` root below Tags that aggregates `@mention`
+  tokens across notes.
 - Sidebar folder, task, and tag rows display immediate-child counts in the label.
 - Notes are sorted globally with folders above files, using the configured sort order.
 - "Created" sorting uses best-effort file creation time and may fall back to modified time.
@@ -45,7 +47,11 @@ This file documents the current project shape and interaction model.
   nodes in the tree.
 - Tags are aggregated into a "Tags" root, collapsed by default, and refreshed
   when the tree reloads.
+- Mentions are aggregated into a "Mentions" root, collapsed by default, and
+  refreshed when the tree reloads.
 - Tags under the Tags root render as wrapping pills; expanded tags list notes below.
+- Mentions under the Mentions root render as wrapping pills; expanded mentions
+  list notes below.
 - The preview pane shows a sticky tag bar with clickable tag pills for the
   current note.
 - Tag pills in the preview bar wrap to multiple lines as needed.
@@ -90,6 +96,7 @@ This file documents the current project shape and interaction model.
 - Create/rename/delete notes.
 - Provide a refresh endpoint or tree reload operation.
 - List tags extracted from note contents.
+- List mentions extracted from note contents.
 - Parse tasks from note contents and toggle completion by editing note lines.
 - Read/write settings stored in `Notes/settings.json`.
 - Read/write sheets stored under `Sheets/`.
@@ -97,6 +104,7 @@ This file documents the current project shape and interaction model.
 ## UI responsibilities
 - Render the folder tree and handle context menus.
 - Render the tags root and tag groups.
+- Render the mentions root and mention groups.
 - Render the tasks root and project groups, and show task lists in the main pane.
 - Render the sheets root and spreadsheet grid with CSV import/export (via
   context menu).
@@ -145,6 +153,8 @@ This file documents the current project shape and interaction model.
   - `GET /api/v1/search?query=<text>` searches note filenames + contents.
 - **Tags**:
   - `GET /api/v1/tags` returns tags with the notes that contain them.
+- **Mentions**:
+  - `GET /api/v1/mentions` returns mentions with the notes that contain them.
 - **Sheets**:
   - `GET /api/v1/sheets/tree` returns the sheets tree under `Sheets/`.
   - `GET /api/v1/sheets?path=<file>` returns sheet JSON.
@@ -171,6 +181,8 @@ This file documents the current project shape and interaction model.
 - Sheet files use the `.jsh` extension and live under `Sheets/`.
 - Files starting with `._` are ignored.
 - Tags match `#` followed by letters, preceded by whitespace or start of line.
+- Mentions match `@` followed by letters, preceded by whitespace or start of line,
+  case-insensitive and normalized to lowercase.
 - Tasks are parsed from note lines starting with `- [ ] ` or `- [x] ` (leading whitespace ok).
 - Task markers: `#tag`, `@mention`, `+project`, `>due`, `^priority` (1-5); markers are case-insensitive and normalized to lowercase.
 - Only one project is used per task (first match wins).

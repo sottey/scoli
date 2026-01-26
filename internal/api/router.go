@@ -37,6 +37,7 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 	r.Get("/journal/archives", s.handleJournalArchiveList)
 	r.Get("/journal/archive", s.handleJournalArchiveGet)
 	r.Get("/tags", s.handleTags)
+	r.Get("/mentions", s.handleMentions)
 	r.Get("/settings", s.handleSettingsGet)
 	r.Patch("/settings", s.handleSettingsUpdate)
 	r.Post("/icons/root", s.handleRootIconUpload)

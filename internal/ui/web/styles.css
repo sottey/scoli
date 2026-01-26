@@ -328,6 +328,12 @@ body.theme-dark .brand .brand-logo-dark {
   background-image: url("/icons/tags.png");
 }
 
+.tree-node.mention-root > .node-row .folder-icon,
+.tree-node.mention-root.collapsed > .node-row .folder-icon,
+.tree-node.mention-root:not(.collapsed) > .node-row .folder-icon {
+  background-image: url("/icons/mentions.svg");
+}
+
 .tree-node.inbox-root > .node-row .folder-icon {
   background-image: url("/icons/inbox.png");
 }
@@ -344,16 +350,16 @@ body.theme-dark .brand .brand-logo-dark {
   background-image: url("/icons/sheets.svg");
 }
 
-.tree-node.folder:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root):not(.sheets-root)
+.tree-node.folder:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.mention-root):not(.journal-root):not(.sheets-root)
   > .node-row
   .folder-icon {
   background-image: url("/icons/folder.png");
 }
 
-.tree-node.folder.collapsed:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root):not(.sheets-root)
+.tree-node.folder.collapsed:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.mention-root):not(.journal-root):not(.sheets-root)
   > .node-row
   .folder-icon,
-.tree-node.folder:not(.collapsed):not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root):not(.sheets-root)
+.tree-node.folder:not(.collapsed):not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.mention-root):not(.journal-root):not(.sheets-root)
   > .node-row
   .folder-icon {
   background-image: url("/icons/folder.png");

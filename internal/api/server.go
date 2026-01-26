@@ -75,6 +75,11 @@ type TagGroup struct {
 	Notes []SearchResult `json:"notes"`
 }
 
+type MentionGroup struct {
+	Mention string         `json:"mention"`
+	Notes   []SearchResult `json:"notes"`
+}
+
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -550,6 +555,89 @@ func (s *Server) handleTags(w http.ResponseWriter, r *http.Request) {
 			return nameA < nameB
 		})
 		groups = append(groups, TagGroup{Tag: tag, Notes: notes})
+	}
+
+	writeJSON(w, http.StatusOK, groups)
+}
+
+func (s *Server) handleMentions(w http.ResponseWriter, r *http.Request) {
+	mentionMap := make(map[string]map[string]string)
+
+	err := filepath.WalkDir(s.notesDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if isIgnoredFile(d.Name()) {
+			return nil
+		}
+		if !isMarkdown(d.Name()) {
+			return nil
+		}
+
+		rel, err := filepath.Rel(s.notesDir, path)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		matches := taskMentionPattern.FindAllStringSubmatch(string(data), -1)
+		if len(matches) == 0 {
+			return nil
+		}
+
+		baseName := filepath.Base(rel)
+		for _, match := range matches {
+			if len(match) < 3 {
+				continue
+			}
+			mention := strings.ToLower(match[2])
+			if mention == "" {
+				continue
+			}
+			if mentionMap[mention] == nil {
+				mentionMap[mention] = make(map[string]string)
+			}
+			mentionMap[mention][rel] = baseName
+		}
+
+		return nil
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "unable to list mentions")
+		return
+	}
+
+	mentions := make([]string, 0, len(mentionMap))
+	for mention := range mentionMap {
+		mentions = append(mentions, mention)
+	}
+	sort.Slice(mentions, func(i, j int) bool {
+		return strings.ToLower(mentions[i]) < strings.ToLower(mentions[j])
+	})
+
+	groups := make([]MentionGroup, 0, len(mentions))
+	for _, mention := range mentions {
+		notesMap := mentionMap[mention]
+		notes := make([]SearchResult, 0, len(notesMap))
+		for path, name := range notesMap {
+			notes = append(notes, SearchResult{Path: path, Name: name})
+		}
+		sort.Slice(notes, func(i, j int) bool {
+			nameA := strings.ToLower(notes[i].Name)
+			nameB := strings.ToLower(notes[j].Name)
+			if nameA == nameB {
+				return notes[i].Path < notes[j].Path
+			}
+			return nameA < nameB
+		})
+		groups = append(groups, MentionGroup{Mention: mention, Notes: notes})
 	}
 
 	writeJSON(w, http.StatusOK, groups)
