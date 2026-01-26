@@ -32,6 +32,9 @@ const tagPills = document.getElementById("tag-pills");
 const assetPreview = document.getElementById("asset-preview");
 const pdfPreview = document.getElementById("pdf-preview");
 const csvPreview = document.getElementById("csv-preview");
+const sheetPanel = document.getElementById("sheet-panel");
+const sheetGrid = document.getElementById("sheet-grid");
+const sheetFileInput = document.getElementById("sheet-file-input");
 const summaryPanel = document.getElementById("summary-panel");
 const taskList = document.getElementById("task-list");
 const journalPanel = document.getElementById("journal-panel");
@@ -85,12 +88,17 @@ const commandBackdrop = commandPalette ? commandPalette.querySelector(".modal-ba
 let currentNotePath = "";
 let currentActivePath = "";
 let currentTree = null;
+let currentSheetsTree = null;
 let currentTags = [];
 let currentTasks = [];
 let journalEntries = [];
 let journalSummary = { archives: [], totalCount: 0 };
 let journalViewMode = "main";
 let currentMode = "note";
+let currentSheetPath = "";
+let currentSheetData = [];
+let sheetDirty = false;
+let sheetInstance = null;
 let lastNoteView = "preview";
 let currentSettings = { darkMode: false };
 let settingsLoaded = false;
@@ -108,11 +116,15 @@ let dragState = null;
 let dragExpandTimer = null;
 let dragOverRow = null;
 const dragExpandDelayMs = 500;
+const defaultSheetRows = 20;
+const defaultSheetCols = 8;
 const inboxNotePath = "Inbox.md";
 const scratchNotePath = "scratch.md";
 const journalRootPath = "__journal__";
+const sheetRootPath = "__sheets__";
 const journalFolderName = "journal";
 const dailyFolderName = "Daily";
+const sheetsFolderName = "Sheets";
 let lastActiveElement = null;
 let scratchNoteExists = false;
 let scratchAutosaveTimer = null;
@@ -1148,6 +1160,7 @@ function showTaskList(title, tasks, summaryText) {
   currentMode = "tasks";
   setPreviewEditable(false);
   currentNotePath = "";
+  currentSheetPath = "";
   notePath.textContent = title;
   saveBtn.disabled = true;
   if (moveCompletedBtn) {
@@ -1162,6 +1175,9 @@ function showTaskList(title, tasks, summaryText) {
   settingsPanel.classList.add("hidden");
   if (journalPanel) {
     journalPanel.classList.add("hidden");
+  }
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
   }
   editor.classList.add("hidden");
   preview.classList.add("hidden");
@@ -1187,8 +1203,8 @@ function showNoteEditor() {
   if (journalPanel) {
     journalPanel.classList.add("hidden");
   }
-  if (journalPanel) {
-    journalPanel.classList.add("hidden");
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
   }
   editor.classList.remove("hidden");
   preview.classList.remove("hidden");
@@ -1203,10 +1219,50 @@ function showNoteEditor() {
   setView(lastNoteView || getPreferredView());
 }
 
+function showSheetEditor() {
+  if (currentMode === "note") {
+    lastNoteView = app.dataset.view;
+  }
+  currentMode = "sheet";
+  setPreviewEditable(false);
+  summaryPanel.classList.add("hidden");
+  settingsPanel.classList.add("hidden");
+  taskList.classList.add("hidden");
+  if (journalPanel) {
+    journalPanel.classList.add("hidden");
+  }
+  editor.classList.add("hidden");
+  preview.classList.add("hidden");
+  assetPreview.classList.add("hidden");
+  assetPreview.innerHTML = "";
+  pdfPreview.classList.add("hidden");
+  pdfPreview.innerHTML = "";
+  csvPreview.classList.add("hidden");
+  csvPreview.innerHTML = "";
+  if (sheetPanel) {
+    sheetPanel.classList.remove("hidden");
+  }
+  tagBar.classList.add("hidden");
+  viewSelector.classList.add("hidden");
+  viewButtons.forEach((btn) => {
+    btn.disabled = true;
+  });
+  editorPane.classList.add("hidden");
+  previewPane.classList.remove("hidden");
+  paneResizer.classList.add("hidden");
+  setView("preview", true);
+  saveBtn.disabled = !sheetDirty;
+  if (moveCompletedBtn) {
+    moveCompletedBtn.disabled = true;
+  }
+  requestAnimationFrame(() => updateSheetViewport());
+}
+
 function showSummary(title, items, action) {
   currentMode = "summary";
   setPreviewEditable(false);
   currentNotePath = "";
+  currentSheetPath = "";
   notePath.textContent = title;
   saveBtn.disabled = true;
   if (moveCompletedBtn) {
@@ -1221,6 +1277,9 @@ function showSummary(title, items, action) {
   settingsPanel.classList.add("hidden");
   if (journalPanel) {
     journalPanel.classList.add("hidden");
+  }
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
   }
   editor.classList.add("hidden");
   preview.classList.add("hidden");
@@ -1293,6 +1352,7 @@ function showJournal() {
   journalViewMode = "main";
   setPreviewEditable(false);
   currentNotePath = "";
+  currentSheetPath = "";
   currentActivePath = journalRootPath;
   notePath.textContent = "Journal";
   saveBtn.disabled = true;
@@ -1315,6 +1375,9 @@ function showJournal() {
   pdfPreview.innerHTML = "";
   csvPreview.classList.add("hidden");
   csvPreview.innerHTML = "";
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
+  }
   if (journalPanel) {
     journalPanel.classList.remove("hidden");
   }
@@ -1337,6 +1400,7 @@ function showJournalArchive(date) {
   journalViewMode = "archive";
   setPreviewEditable(false);
   currentNotePath = "";
+  currentSheetPath = "";
   currentActivePath = `${journalRootPath}:${date}`;
   notePath.textContent = `Journal Archive: ${date}`;
   saveBtn.disabled = true;
@@ -1359,6 +1423,9 @@ function showJournalArchive(date) {
   pdfPreview.innerHTML = "";
   csvPreview.classList.add("hidden");
   csvPreview.innerHTML = "";
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
+  }
   if (journalPanel) {
     journalPanel.classList.remove("hidden");
   }
@@ -1914,6 +1981,7 @@ function showSettings() {
   currentMode = "settings";
   setPreviewEditable(false);
   currentNotePath = "";
+  currentSheetPath = "";
   notePath.textContent = "Settings";
   tagBar.classList.add("hidden");
   viewSelector.classList.add("hidden");
@@ -1926,6 +1994,9 @@ function showSettings() {
   preview.classList.add("hidden");
   if (journalPanel) {
     journalPanel.classList.add("hidden");
+  }
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
   }
   assetPreview.classList.add("hidden");
   assetPreview.innerHTML = "";
@@ -2748,6 +2819,32 @@ function countTreeItems(node) {
   return counts;
 }
 
+function countSheetItems(node) {
+  const counts = {
+    folders: 0,
+    sheets: 0,
+  };
+  if (!node || !node.children) {
+    return counts;
+  }
+  const stack = [...node.children];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) {
+      continue;
+    }
+    if (current.type === "folder") {
+      counts.folders += 1;
+      if (current.children && current.children.length > 0) {
+        stack.push(...current.children);
+      }
+    } else if (current.type === "sheet") {
+      counts.sheets += 1;
+    }
+  }
+  return counts;
+}
+
 function buildTaskGroup(name, tasks, depth) {
   const wrapper = document.createElement("div");
   wrapper.className = "tree-node folder task-group";
@@ -2914,6 +3011,156 @@ function buildTasksRoot(tasks) {
     ]);
   });
 
+  return wrapper;
+}
+
+function displaySheetName(name) {
+  const value = String(name || "");
+  if (value.toLowerCase().endsWith(".jsh")) {
+    return value.slice(0, -4);
+  }
+  return value;
+}
+
+function buildSheetsNode(node, depth) {
+  const wrapper = document.createElement("div");
+  wrapper.className = `tree-node ${node.type === "folder" ? "folder" : "sheet"}`;
+
+  const row = document.createElement("div");
+  row.className = "node-row";
+  row.style.paddingLeft = `${12 + depth * 12}px`;
+  row.dataset.path = node.path ? `sheets:${node.path}` : sheetRootPath;
+  row.dataset.type = node.type === "folder" ? "sheet-folder" : "sheet";
+
+  if (node.type === "folder") {
+    const icon = document.createElement("span");
+    icon.className = "folder-icon";
+    row.appendChild(icon);
+  } else {
+    const icon = document.createElement("span");
+    icon.className = "sheet-icon";
+    row.appendChild(icon);
+  }
+
+  const name = document.createElement("span");
+  name.className = "node-name";
+  const label = node.type === "folder" ? node.name : displaySheetName(node.name);
+  if (node.type === "folder") {
+    const count = (node.children || []).length;
+    name.textContent = formatCountLabel(label, count);
+  } else {
+    name.textContent = label;
+  }
+  row.appendChild(name);
+  wrapper.appendChild(row);
+
+  if (node.type === "folder") {
+    if (depth > 0) {
+      wrapper.classList.add("collapsed");
+    }
+    const children = document.createElement("div");
+    children.className = "node-children";
+    (node.children || []).forEach((child) => {
+      children.appendChild(buildSheetsNode(child, depth + 1));
+    });
+    wrapper.appendChild(children);
+
+    row.addEventListener("click", () => {
+      hideContextMenu();
+      wrapper.classList.toggle("collapsed");
+      const counts = countSheetItems(node);
+      currentActivePath = row.dataset.path;
+      setActiveNode(currentActivePath);
+      const title = depth === 0 ? "Sheets" : `Sheets Folder: ${node.name}`;
+      const action = { label: "New Sheet", handler: () => createSheet(node.path || "") };
+      showSummary(title, [
+        { label: "Folders", value: counts.folders },
+        { label: "Sheets", value: counts.sheets },
+      ], action);
+    });
+
+    row.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      if (depth === 0) {
+        return;
+      }
+      const isCollapsed = wrapper.classList.contains("collapsed");
+      const items = [
+        {
+          label: "New Sheet",
+          action: () => createSheet(node.path || ""),
+        },
+        {
+          label: "Import CSV",
+          action: () => promptSheetImport(node.path || ""),
+        },
+        {
+          label: isCollapsed ? "Expand" : "Collapse",
+          action: () => wrapper.classList.toggle("collapsed"),
+        },
+      ];
+      showContextMenu(event.clientX, event.clientY, items);
+    });
+    return wrapper;
+  }
+
+  row.addEventListener("click", (event) => {
+    event.stopPropagation();
+    hideContextMenu();
+    openSheet(node.path);
+  });
+
+  row.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    showContextMenu(event.clientX, event.clientY, [
+      {
+        label: "Rename",
+        action: () => renameSheet(node.path),
+      },
+      {
+        label: "Delete",
+        action: () => deleteSheet(node.path),
+      },
+      {
+        label: "Export CSV",
+        action: () => exportSheet(node.path),
+      },
+    ]);
+  });
+
+  return wrapper;
+}
+
+function buildSheetsRoot(tree) {
+  const node = tree || { name: "Sheets", path: "", type: "folder", children: [] };
+  const wrapper = buildSheetsNode(node, 0);
+  wrapper.classList.add("sheets-root");
+  wrapper.classList.add("collapsed");
+  const row = wrapper.querySelector(":scope > .node-row");
+  if (row) {
+    row.dataset.type = "sheet-root";
+    row.dataset.path = sheetRootPath;
+    applyRootIconToRow(row, "sheets");
+    row.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      const isCollapsed = wrapper.classList.contains("collapsed");
+      showContextMenu(event.clientX, event.clientY, [
+        ...rootIconMenuItems("sheets", row),
+        {
+          label: "New Sheet",
+          action: () => createSheet(""),
+        },
+        {
+          label: "Import CSV",
+          action: () => promptSheetImport(""),
+        },
+        {
+          label: isCollapsed ? "Expand" : "Collapse",
+          action: () => wrapper.classList.toggle("collapsed"),
+        },
+      ]);
+    });
+  }
   return wrapper;
 }
 
@@ -3540,6 +3787,22 @@ function stripJournalFolder(tree) {
   return { ...tree, children: filtered };
 }
 
+function stripSheetsFolder(tree) {
+  if (!tree || !Array.isArray(tree.children)) {
+    return tree;
+  }
+  const filtered = tree.children.filter((child) => {
+    if (child.type !== "folder" || !child.path) {
+      return true;
+    }
+    return child.path.toLowerCase() !== sheetsFolderName.toLowerCase();
+  });
+  if (filtered.length === tree.children.length) {
+    return tree;
+  }
+  return { ...tree, children: filtered };
+}
+
 function stripScratchNode(tree) {
   if (!tree || !Array.isArray(tree.children)) {
     return tree;
@@ -3612,12 +3875,16 @@ function renderTree(tree, tags, tasks) {
   if (tree) {
     treeContainer.appendChild(buildInboxNode());
     const { dailyNode, tree: notesTree } = extractDailyNode(
-      stripJournalFolder(stripScratchNode(stripInboxNode(tree)))
+      stripJournalFolder(stripSheetsFolder(stripScratchNode(stripInboxNode(tree))))
     );
     treeContainer.appendChild(buildDailyNode(dailyNode));
     const rootNode = buildTreeNode(notesTree, 0);
     rootNode.classList.add("collapsed");
     treeContainer.appendChild(rootNode);
+  }
+  if (currentSheetsTree) {
+    const sheetsRoot = buildSheetsRoot(currentSheetsTree);
+    treeContainer.appendChild(sheetsRoot);
   }
   if (showTasksRoot && tasks) {
     const tasksRoot = buildTasksRoot(tasks);
@@ -3674,6 +3941,7 @@ function expandAllRootNodes() {
   const rootSelectors = [
     ".tree-node.note-root",
     ".tree-node.daily-root",
+    ".tree-node.sheets-root",
     ".tree-node.task-root",
     ".tree-node.tag-root",
     ".tree-node.journal-root",
@@ -3739,6 +4007,8 @@ async function refreshTreePreserveMode() {
   await loadTree();
   if (modeSnapshot === "note" && notePathSnapshot) {
     await openNote(notePathSnapshot);
+  } else if (modeSnapshot === "sheet" && currentSheetPath) {
+    await openSheet(currentSheetPath);
   } else if (modeSnapshot === "settings") {
     showSettings();
   } else if (modeSnapshot === "journal") {
@@ -3785,6 +4055,9 @@ function setActiveNode(path) {
       row.dataset.type === "asset" ||
       row.dataset.type === "pdf" ||
       row.dataset.type === "csv" ||
+      row.dataset.type === "sheet" ||
+      row.dataset.type === "sheet-root" ||
+      row.dataset.type === "sheet-folder" ||
       row.dataset.type === "task-root" ||
       row.dataset.type === "tag-root" ||
       row.dataset.type === "task-group" ||
@@ -3835,8 +4108,9 @@ async function loadTree(path = "") {
     const previousActivePath = currentActivePath;
     const expandedPaths = getExpandedTreePaths();
     const query = path ? `?path=${encodeURIComponent(path)}` : "";
-    const [tree, tags, tasksResponse, settingsResponse, archiveResponse] = await Promise.all([
+    const [tree, sheetsTree, tags, tasksResponse, settingsResponse, archiveResponse] = await Promise.all([
       apiFetch(`/tree${query}`),
+      apiFetch("/sheets/tree"),
       apiFetch("/tags"),
       apiFetch("/tasks"),
       apiFetch("/settings"),
@@ -3852,6 +4126,7 @@ async function loadTree(path = "") {
     settingsLoaded = true;
     applySettings(settingsResponse.settings || {});
     currentTree = tree;
+    currentSheetsTree = sheetsTree;
     currentTags = tags;
     currentTasks = tasksResponse.tasks || [];
     journalSummary = {
@@ -3864,6 +4139,27 @@ async function loadTree(path = "") {
     if (restoreTaskSelection(previousActivePath, currentTasks)) {
       restoreExpandedTreePaths(expandedPaths);
       return;
+    }
+    if (previousActivePath === sheetRootPath) {
+      const counts = countSheetItems(currentSheetsTree);
+      currentActivePath = sheetRootPath;
+      setActiveNode(currentActivePath);
+      restoreExpandedTreePaths(expandedPaths);
+      showSummary("Sheets", [
+        { label: "Folders", value: counts.folders },
+        { label: "Sheets", value: counts.sheets },
+      ], { label: "New", handler: () => createSheet("") });
+      return;
+    }
+    if (previousActivePath && previousActivePath.startsWith("sheets:")) {
+      const path = previousActivePath.slice("sheets:".length);
+      if (path) {
+        currentActivePath = previousActivePath;
+        setActiveNode(currentActivePath);
+        restoreExpandedTreePaths(expandedPaths);
+        await openSheet(path);
+        return;
+      }
     }
     if (previousActivePath === journalRootPath) {
       currentActivePath = journalRootPath;
@@ -3929,6 +4225,7 @@ async function openNote(path) {
     showNoteEditor();
     const data = await apiFetch(`/notes?path=${encodeURIComponent(path)}`);
     currentNotePath = data.path;
+    currentSheetPath = "";
     currentActivePath = data.path;
     notePath.textContent = data.path;
     editor.value = data.content;
@@ -3940,6 +4237,9 @@ async function openNote(path) {
     pdfPreview.innerHTML = "";
     csvPreview.classList.add("hidden");
     csvPreview.innerHTML = "";
+    if (sheetPanel) {
+      sheetPanel.classList.add("hidden");
+    }
     viewSelector.classList.remove("hidden");
     viewButtons.forEach((btn) => {
       btn.disabled = false;
@@ -4184,11 +4484,15 @@ function openAsset(path) {
   if (journalPanel) {
     journalPanel.classList.add("hidden");
   }
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
+  }
   editor.classList.remove("hidden");
   editorPane.classList.remove("hidden");
   previewPane.classList.remove("hidden");
   paneResizer.classList.remove("hidden");
   currentNotePath = "";
+  currentSheetPath = "";
   currentActivePath = path;
   notePath.textContent = path;
   editor.value = "";
@@ -4200,6 +4504,9 @@ function openAsset(path) {
   pdfPreview.innerHTML = "";
   csvPreview.classList.add("hidden");
   csvPreview.innerHTML = "";
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
+  }
   const img = document.createElement("img");
   img.src = `${apiBase}/files?path=${encodeURIComponent(path)}`;
   img.alt = path.split("/").pop() || "Image";
@@ -4232,6 +4539,7 @@ function openPdf(path) {
   previewPane.classList.remove("hidden");
   paneResizer.classList.remove("hidden");
   currentNotePath = "";
+  currentSheetPath = "";
   currentActivePath = path;
   notePath.textContent = path;
   editor.value = "";
@@ -4243,6 +4551,9 @@ function openPdf(path) {
   csvPreview.innerHTML = "";
   pdfPreview.classList.remove("hidden");
   pdfPreview.innerHTML = "";
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
+  }
   const src = `${apiBase}/files?path=${encodeURIComponent(path)}`;
   const embed = document.createElement("embed");
   embed.type = "application/pdf";
@@ -4361,11 +4672,15 @@ async function openCsv(path) {
     if (journalPanel) {
       journalPanel.classList.add("hidden");
     }
+    if (sheetPanel) {
+      sheetPanel.classList.add("hidden");
+    }
     editor.classList.remove("hidden");
     editorPane.classList.remove("hidden");
     previewPane.classList.remove("hidden");
     paneResizer.classList.remove("hidden");
     currentNotePath = "";
+    currentSheetPath = "";
     currentActivePath = path;
     notePath.textContent = path;
     editor.value = "";
@@ -4392,6 +4707,421 @@ async function openCsv(path) {
   } catch (err) {
     alert(err.message);
   }
+}
+
+function createBlankSheetData(rows = defaultSheetRows, cols = defaultSheetCols) {
+  const data = [];
+  for (let r = 0; r < rows; r += 1) {
+    const row = [];
+    for (let c = 0; c < cols; c += 1) {
+      row.push("");
+    }
+    data.push(row);
+  }
+  return data;
+}
+
+function normalizeSheetData(data) {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  let maxCols = 0;
+  data.forEach((row) => {
+    if (Array.isArray(row) && row.length > maxCols) {
+      maxCols = row.length;
+    }
+  });
+  if (maxCols === 0) {
+    return data.map(() => []);
+  }
+  return data.map((row) => {
+    const safe = Array.isArray(row) ? row : [];
+    const normalized = new Array(maxCols).fill("");
+    safe.forEach((cell, index) => {
+      normalized[index] = String(cell ?? "");
+    });
+    return normalized;
+  });
+}
+
+function getSheetDimensions(data) {
+  const normalized = normalizeSheetData(data);
+  const rows = normalized.length;
+  let cols = 0;
+  normalized.forEach((row) => {
+    if (row.length > cols) {
+      cols = row.length;
+    }
+  });
+  return { rows, cols };
+}
+
+function markSheetDirty() {
+  if (!sheetDirty) {
+    sheetDirty = true;
+  }
+  saveBtn.disabled = false;
+  saveBtn.textContent = "Save";
+}
+
+function updateSheetViewport() {
+  if (!sheetGrid) {
+    return;
+  }
+  const worksheet = getSheetWorksheet();
+  if (!worksheet) {
+    return;
+  }
+  const rect = sheetGrid.getBoundingClientRect();
+  const width = Math.max(0, Math.floor(rect.width));
+  const height = Math.max(0, Math.floor(rect.height));
+  if (typeof worksheet.setViewport === "function") {
+    worksheet.setViewport(width, height);
+  }
+  if (worksheet.options) {
+    worksheet.options.tableOverflow = true;
+    worksheet.options.tableWidth = width;
+    worksheet.options.tableHeight = height;
+  }
+  adjustSheetToPane();
+}
+
+function adjustSheetToPane() {
+  const worksheet = getSheetWorksheet();
+  if (!worksheet || !sheetGrid) {
+    return;
+  }
+  const content = sheetGrid.querySelector(".jss_content");
+  const contentRect = content ? content.getBoundingClientRect() : sheetGrid.getBoundingClientRect();
+  const contentWidth = Math.max(0, Math.floor(contentRect.width));
+  const contentHeight = Math.max(0, Math.floor(contentRect.height));
+  const columnCount = (worksheet.options && worksheet.options.columns && worksheet.options.columns.length)
+    ? worksheet.options.columns.length
+    : (currentSheetData[0] ? currentSheetData[0].length : defaultSheetCols);
+  const rowsCount = worksheet.options && worksheet.options.data ? worksheet.options.data.length : currentSheetData.length;
+  if (columnCount > 0 && typeof worksheet.setWidth === "function") {
+    const targetWidth = Math.max(60, Math.floor(contentWidth / columnCount));
+    for (let col = 0; col < columnCount; col += 1) {
+      worksheet.setWidth(col, targetWidth);
+    }
+  }
+  let rowHeight = 24;
+  if (typeof worksheet.getHeight === "function") {
+    const heightValue = worksheet.getHeight(0);
+    if (Number.isFinite(heightValue) && heightValue > 0) {
+      rowHeight = heightValue;
+    }
+  }
+  if (rowHeight > 0 && typeof worksheet.insertRow === "function") {
+    const targetRows = Math.max(rowsCount, Math.floor(contentHeight / rowHeight));
+    const addCount = targetRows - rowsCount;
+    if (addCount > 0) {
+      worksheet.insertRow(addCount);
+    }
+  }
+}
+
+function getSheetWorksheet() {
+  if (!sheetInstance) {
+    return null;
+  }
+  if (Array.isArray(sheetInstance)) {
+    return sheetInstance[0] || null;
+  }
+  if (typeof sheetInstance.getWorksheet === "function") {
+    return sheetInstance.getWorksheet(0);
+  }
+  if (sheetInstance.worksheets && sheetInstance.worksheets[0]) {
+    return sheetInstance.worksheets[0];
+  }
+  return sheetInstance;
+}
+
+function destroySheetInstance() {
+  if (!sheetInstance) {
+    return;
+  }
+  const worksheet = getSheetWorksheet();
+  if (worksheet && typeof worksheet.destroy === "function") {
+    worksheet.destroy();
+  } else if (typeof sheetInstance.destroy === "function") {
+    sheetInstance.destroy();
+  }
+  sheetInstance = null;
+}
+
+function getSheetDataFromInstance() {
+  const worksheet = getSheetWorksheet();
+  if (worksheet && typeof worksheet.getData === "function") {
+    return worksheet.getData();
+  }
+  return currentSheetData;
+}
+
+function renderSheetGrid(data) {
+  if (!sheetGrid) {
+    return;
+  }
+  let normalized = normalizeSheetData(data);
+  if (normalized.length === 0) {
+    normalized = createBlankSheetData();
+  }
+  const { rows, cols } = getSheetDimensions(normalized);
+  currentSheetData = normalized;
+  destroySheetInstance();
+  sheetGrid.innerHTML = "";
+
+  if (window.jspreadsheet) {
+    const rect = sheetGrid.getBoundingClientRect();
+    const width = Math.max(0, Math.floor(rect.width));
+    const height = Math.max(0, Math.floor(rect.height));
+    sheetInstance = window.jspreadsheet(sheetGrid, {
+      tableOverflow: true,
+      tableWidth: width,
+      tableHeight: height,
+      columnResize: true,
+      minDimensions: [Math.max(cols, defaultSheetCols), Math.max(rows, defaultSheetRows)],
+      worksheets: [
+        {
+          data: normalized,
+          tableOverflow: true,
+          tableWidth: width,
+          tableHeight: height,
+          minDimensions: [Math.max(cols, defaultSheetCols), Math.max(rows, defaultSheetRows)],
+        },
+      ],
+      onchange: () => {
+        markSheetDirty();
+      },
+      onafterchanges: () => {
+        markSheetDirty();
+      },
+    });
+    requestAnimationFrame(() => updateSheetViewport());
+  }
+}
+
+async function openSheet(path) {
+  if (!path) {
+    return;
+  }
+  try {
+    showSheetEditor();
+    const data = await apiFetch(`/sheets?path=${encodeURIComponent(path)}`);
+    currentNotePath = "";
+    currentSheetPath = data.path;
+    currentActivePath = `sheets:${data.path}`;
+    notePath.textContent = data.path;
+    sheetDirty = false;
+    renderSheetGrid(data.data || []);
+    setActiveNode(currentActivePath);
+    saveBtn.disabled = true;
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function ensureSheetName(name) {
+  if (!name) {
+    return "";
+  }
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.toLowerCase().endsWith(".jsh") ? trimmed : `${trimmed}.jsh`;
+}
+
+async function saveSheet() {
+  if (!currentSheetPath) {
+    return;
+  }
+  try {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+    currentSheetData = normalizeSheetData(getSheetDataFromInstance());
+    await apiFetch("/sheets", {
+      method: "PATCH",
+      body: JSON.stringify({
+        path: currentSheetPath,
+        data: currentSheetData,
+      }),
+    });
+    sheetDirty = false;
+    saveBtn.textContent = "Save";
+    saveBtn.disabled = true;
+  } catch (err) {
+    saveBtn.textContent = "Save";
+    saveBtn.disabled = false;
+    alert(err.message);
+  }
+}
+
+async function createSheet(parentPath = "") {
+  const name = promptForName("New sheet name");
+  if (!name) {
+    return;
+  }
+  const sheetName = ensureSheetName(name);
+  const path = parentPath ? `${parentPath}/${sheetName}` : sheetName;
+  try {
+    const data = await apiFetch("/sheets", {
+      method: "POST",
+      body: JSON.stringify({
+        path,
+        data: createBlankSheetData(),
+      }),
+    });
+    await loadTree();
+    await openSheet(data.path || path);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function renameSheet(path) {
+  if (!path) {
+    return;
+  }
+  const currentName = displaySheetName(path.split("/").pop());
+  const name = promptForNameWithDefault(`Rename sheet (${currentName})`, currentName);
+  if (!name) {
+    return;
+  }
+  const base = path.split("/").slice(0, -1).join("/");
+  const newName = ensureSheetName(name);
+  const newPath = base ? `${base}/${newName}` : newName;
+  try {
+    const data = await apiFetch("/sheets/rename", {
+      method: "PATCH",
+      body: JSON.stringify({ path, newPath }),
+    });
+    currentActivePath = sheetRootPath;
+    await loadTree();
+    await openSheet(data.newPath || newPath);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function deleteSheet(path) {
+  if (!path) {
+    return;
+  }
+  const confirmDelete = window.confirm("Delete this sheet?");
+  if (!confirmDelete) {
+    return;
+  }
+  try {
+    await apiFetch(`/sheets?path=${encodeURIComponent(path)}`, {
+      method: "DELETE",
+    });
+    currentSheetPath = "";
+    currentActivePath = sheetRootPath;
+    await loadTree();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+let pendingSheetImportParent = "";
+
+function promptSheetImport(parentPath = "") {
+  if (!sheetFileInput) {
+    return;
+  }
+  pendingSheetImportParent = parentPath;
+  sheetFileInput.value = "";
+  sheetFileInput.click();
+}
+
+async function handleSheetImportFile() {
+  if (!sheetFileInput || !sheetFileInput.files || sheetFileInput.files.length === 0) {
+    return;
+  }
+  const file = sheetFileInput.files[0];
+  if (!file) {
+    return;
+  }
+  const baseName = file.name.replace(/\.[^/.]+$/, "");
+  const name = promptForNameWithDefault("Import sheet name", baseName);
+  if (!name) {
+    return;
+  }
+  const sheetName = ensureSheetName(name);
+  const path = pendingSheetImportParent ? `${pendingSheetImportParent}/${sheetName}` : sheetName;
+  try {
+    const csvText = await file.text();
+    const response = await apiFetch("/sheets/import", {
+      method: "POST",
+      body: JSON.stringify({
+        path,
+        csv: csvText,
+      }),
+    });
+    await loadTree();
+    await openSheet(response.path || path);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function exportSheet(path) {
+  if (!path) {
+    return;
+  }
+  try {
+    const response = await fetch(`${apiBase}/sheets/export?path=${encodeURIComponent(path)}`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: "Unable to export sheet" }));
+      throw new Error(error.error || "Unable to export sheet");
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${displaySheetName(path.split("/").pop()) || "sheet"}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function addSheetRow() {
+  const worksheet = getSheetWorksheet();
+  if (worksheet && typeof worksheet.insertRow === "function") {
+    worksheet.insertRow();
+    markSheetDirty();
+    return;
+  }
+  const data = normalizeSheetData(currentSheetData);
+  const { cols } = getSheetDimensions(data);
+  const row = new Array(Math.max(cols, 1)).fill("");
+  data.push(row);
+  currentSheetData = data;
+  renderSheetGrid(currentSheetData);
+  markSheetDirty();
+}
+
+function addSheetColumn() {
+  const worksheet = getSheetWorksheet();
+  if (worksheet && typeof worksheet.insertColumn === "function") {
+    worksheet.insertColumn();
+    markSheetDirty();
+    return;
+  }
+  let data = normalizeSheetData(currentSheetData);
+  const { rows, cols } = getSheetDimensions(data);
+  if (rows === 0) {
+    data = createBlankSheetData(1, Math.max(cols, 1));
+  }
+  data.forEach((row) => row.push(""));
+  currentSheetData = data;
+  renderSheetGrid(currentSheetData);
+  markSheetDirty();
 }
 
 async function saveNoteContent(path, content, options = {}) {
@@ -4474,6 +5204,8 @@ function flushNoteSave() {
 function saveCurrent() {
   if (currentMode === "settings") {
     saveSettings();
+  } else if (currentMode === "sheet") {
+    saveSheet();
   } else {
     saveNote();
   }
@@ -5388,6 +6120,11 @@ preview.addEventListener("scroll", () => {
 });
 
 saveBtn.addEventListener("click", () => saveCurrent());
+if (sheetFileInput) {
+  sheetFileInput.addEventListener("change", () => {
+    handleSheetImportFile().catch((err) => alert(err.message));
+  });
+}
 if (moveCompletedBtn) {
   moveCompletedBtn.disabled = !currentNotePath;
   moveCompletedBtn.addEventListener("click", () => moveCompletedTasksForCurrentNote());
@@ -5535,6 +6272,12 @@ window.addEventListener("keydown", (event) => {
     toggleDatePopover();
   }
 }, { capture: true });
+
+window.addEventListener("resize", () => {
+  if (currentMode === "sheet") {
+    updateSheetViewport();
+  }
+});
 
 treeContainer.addEventListener("contextmenu", (event) => {
   const row = event.target.closest(".node-row");

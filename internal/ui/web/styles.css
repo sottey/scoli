@@ -213,7 +213,8 @@ body.theme-dark .brand .brand-logo-dark {
 .node-row.active .task-icon,
 .node-row.active .asset-icon,
 .node-row.active .pdf-icon,
-.node-row.active .csv-icon {
+.node-row.active .csv-icon,
+.node-row.active .sheet-icon {
   filter: brightness(0) invert(1);
 }
 
@@ -289,6 +290,16 @@ body.theme-dark .brand .brand-logo-dark {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234e5563' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z'/><path d='M14 3v5h5'/><path d='M8.5 12h7M8.5 16h7'/></svg>");
 }
 
+.sheet-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 24px 24px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234e5563' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><rect x='3.5' y='4.5' width='17' height='15' rx='2'/><path d='M8 4.5v15M13 4.5v15M18 4.5v15M3.5 9h17M3.5 13h17M3.5 17h17'/></svg>");
+}
+
 .tree-node.folder.collapsed > .node-children {
   display: none;
 }
@@ -327,16 +338,22 @@ body.theme-dark .brand .brand-logo-dark {
   background-image: url("/icons/journal.png");
 }
 
-.tree-node.folder:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root)
+.tree-node.sheets-root > .node-row .folder-icon,
+.tree-node.sheets-root.collapsed > .node-row .folder-icon,
+.tree-node.sheets-root:not(.collapsed) > .node-row .folder-icon {
+  background-image: url("/icons/sheets.svg");
+}
+
+.tree-node.folder:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root):not(.sheets-root)
   > .node-row
   .folder-icon {
   background-image: url("/icons/folder.png");
 }
 
-.tree-node.folder.collapsed:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root)
+.tree-node.folder.collapsed:not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root):not(.sheets-root)
   > .node-row
   .folder-icon,
-.tree-node.folder:not(.collapsed):not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root)
+.tree-node.folder:not(.collapsed):not(.note-root):not(.daily-root):not(.task-root):not(.tag-root):not(.journal-root):not(.sheets-root)
   > .node-row
   .folder-icon {
   background-image: url("/icons/folder.png");
@@ -1261,6 +1278,98 @@ body.theme-dark .settings-row input::after {
 
 .csv-preview.hidden {
   display: none;
+}
+
+.sheet-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.sheet-panel.hidden {
+  display: none;
+}
+
+.sheet-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sheet-toolbar-spacer {
+  flex: 1;
+}
+
+.sheet-grid {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--shadow);
+  width: 100%;
+}
+
+body.theme-dark .sheet-grid {
+  background: #0f172a;
+}
+
+.sheet-grid .jspreadsheet,
+.sheet-grid .jexcel,
+.sheet-grid .jexcel_container {
+  height: 100%;
+}
+
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sheet-table th,
+.sheet-table td {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  text-align: left;
+}
+
+.sheet-table th {
+  background: var(--surface-strong);
+  font-weight: 600;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.sheet-table th.corner {
+  width: 40px;
+}
+
+.sheet-table th.row-header {
+  width: 40px;
+  text-align: right;
+  padding-right: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-cell-input {
+  width: 100%;
+  min-width: 96px;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+}
+
+.sheet-cell-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: rgba(59, 130, 246, 0.08);
 }
 
 .csv-table {

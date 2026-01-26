@@ -17,6 +17,12 @@ type Note struct {
 	Modified string `json:"modified"`
 }
 
+type Sheet struct {
+	Path     string     `json:"path"`
+	Data     [][]string `json:"data"`
+	Modified string     `json:"modified"`
+}
+
 type CreateNoteRequest struct {
 	Path    string `json:"path"`
 	Content string `json:"content"`
@@ -44,6 +50,39 @@ type RenameNoteRequest struct {
 type RenameNoteResponse struct {
 	Path    string `json:"path"`
 	NewPath string `json:"newPath"`
+}
+
+type CreateSheetRequest struct {
+	Path string     `json:"path"`
+	Data [][]string `json:"data"`
+}
+
+type CreateSheetResponse struct {
+	Path string `json:"path"`
+}
+
+type UpdateSheetRequest struct {
+	Path string     `json:"path"`
+	Data [][]string `json:"data"`
+}
+
+type UpdateSheetResponse struct {
+	Path string `json:"path"`
+}
+
+type RenameSheetRequest struct {
+	Path    string `json:"path"`
+	NewPath string `json:"newPath"`
+}
+
+type RenameSheetResponse struct {
+	Path    string `json:"path"`
+	NewPath string `json:"newPath"`
+}
+
+type ImportSheetRequest struct {
+	Path string `json:"path"`
+	CSV  string `json:"csv"`
 }
 
 type DeleteResponse struct {

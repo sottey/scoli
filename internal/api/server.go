@@ -26,6 +26,8 @@ var timeNow = time.Now
 const inboxNotePath = "Inbox.md"
 const dailyFolderName = "Daily"
 const dailyDateLayout = "2006-01-02"
+const sheetsFolderName = "Sheets"
+const sheetExtension = ".jsh"
 
 type TemplateContext struct {
 	Title  string
@@ -799,6 +801,9 @@ func (s *Server) buildTree(absPath, relPath string, showTemplates bool, sortBy, 
 	var nodes []treeNodeSortEntry
 	for _, entry := range entries {
 		name := entry.Name()
+		if relPath == "" && entry.IsDir() && strings.EqualFold(name, sheetsFolderName) {
+			continue
+		}
 		childRel := filepath.Join(relPath, name)
 		childAbs := filepath.Join(absPath, name)
 		info, err := entry.Info()
@@ -877,6 +882,9 @@ func (s *Server) buildTree(absPath, relPath string, showTemplates bool, sortBy, 
 					created: createdAt,
 					updated: updatedAt,
 				})
+				continue
+			}
+			if isSheetFile(name) {
 				continue
 			}
 			continue
@@ -1551,6 +1559,17 @@ func isPDF(name string) bool {
 
 func isCSV(name string) bool {
 	return strings.EqualFold(filepath.Ext(name), ".csv")
+}
+
+func isSheetFile(name string) bool {
+	return strings.EqualFold(filepath.Ext(name), sheetExtension)
+}
+
+func ensureSheetExtension(path string) string {
+	if strings.HasSuffix(strings.ToLower(path), sheetExtension) {
+		return path
+	}
+	return path + sheetExtension
 }
 
 func tagsContain(tags []string, query string) bool {

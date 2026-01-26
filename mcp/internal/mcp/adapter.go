@@ -42,6 +42,11 @@ func (a *Adapter) Tools() []ToolSpec {
 			}, nil),
 		},
 		{
+			Name:        "sheet.tree",
+			Description: "Get the sheets tree under the Sheets root.",
+			InputSchema: schemaObject(map[string]any{}, nil),
+		},
+		{
 			Name:        "note.read",
 			Description: "Read a note by path.",
 			InputSchema: schemaObject(map[string]any{
@@ -77,6 +82,77 @@ func (a *Adapter) Tools() []ToolSpec {
 			Description: "Delete a note.",
 			InputSchema: schemaObject(map[string]any{
 				"path": schemaString("Note path, relative to the notes root."),
+			}, []string{"path"}),
+		},
+		{
+			Name:        "sheet.read",
+			Description: "Read a sheet by path.",
+			InputSchema: schemaObject(map[string]any{
+				"path": schemaString("Sheet path, relative to the Sheets root."),
+			}, []string{"path"}),
+		},
+		{
+			Name:        "sheet.create",
+			Description: "Create a new sheet (adds .jsh if missing).",
+			InputSchema: schemaObject(map[string]any{
+				"path": schemaString("Target sheet path, relative to the Sheets root."),
+				"data": map[string]any{
+					"type":        "array",
+					"description": "2D array of cell values.",
+					"items": map[string]any{
+						"type": "array",
+						"items": map[string]any{
+							"type": "string",
+						},
+					},
+				},
+			}, []string{"path", "data"}),
+		},
+		{
+			Name:        "sheet.update",
+			Description: "Update an existing sheet's data.",
+			InputSchema: schemaObject(map[string]any{
+				"path": schemaString("Sheet path, relative to the Sheets root."),
+				"data": map[string]any{
+					"type":        "array",
+					"description": "2D array of cell values.",
+					"items": map[string]any{
+						"type": "array",
+						"items": map[string]any{
+							"type": "string",
+						},
+					},
+				},
+			}, []string{"path", "data"}),
+		},
+		{
+			Name:        "sheet.rename",
+			Description: "Rename a sheet.",
+			InputSchema: schemaObject(map[string]any{
+				"path":    schemaString("Existing sheet path."),
+				"newPath": schemaString("New sheet path, relative to Sheets root."),
+			}, []string{"path", "newPath"}),
+		},
+		{
+			Name:        "sheet.delete",
+			Description: "Delete a sheet.",
+			InputSchema: schemaObject(map[string]any{
+				"path": schemaString("Sheet path, relative to the Sheets root."),
+			}, []string{"path"}),
+		},
+		{
+			Name:        "sheet.import",
+			Description: "Import CSV into a new sheet.",
+			InputSchema: schemaObject(map[string]any{
+				"path": schemaString("Target sheet path, relative to the Sheets root."),
+				"csv":  schemaString("CSV contents to import."),
+			}, []string{"path", "csv"}),
+		},
+		{
+			Name:        "sheet.export",
+			Description: "Export a sheet as CSV.",
+			InputSchema: schemaObject(map[string]any{
+				"path": schemaString("Sheet path, relative to the Sheets root."),
 			}, []string{"path"}),
 		},
 		{
@@ -179,6 +255,8 @@ func (a *Adapter) CallTool(ctx context.Context, name string, args any) (any, err
 			}
 		}
 		return a.client.GetTree(ctx, payload.Path)
+	case "sheet.tree":
+		return a.client.GetSheetsTree(ctx)
 	case "note.read":
 		payload, err := decodePath(args)
 		if err != nil {
@@ -221,6 +299,72 @@ func (a *Adapter) CallTool(ctx context.Context, name string, args any) (any, err
 			return nil, err
 		}
 		return a.client.DeleteNote(ctx, payload.Path)
+	case "sheet.read":
+		payload, err := decodePath(args)
+		if err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.Path); err != nil {
+			return nil, err
+		}
+		return a.client.ReadSheet(ctx, payload.Path)
+	case "sheet.create":
+		var payload scoli.CreateSheetRequest
+		if err := decodeInput(args, &payload); err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.Path); err != nil {
+			return nil, err
+		}
+		return a.client.CreateSheet(ctx, payload)
+	case "sheet.update":
+		var payload scoli.UpdateSheetRequest
+		if err := decodeInput(args, &payload); err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.Path); err != nil {
+			return nil, err
+		}
+		return a.client.UpdateSheet(ctx, payload)
+	case "sheet.rename":
+		var payload scoli.RenameSheetRequest
+		if err := decodeInput(args, &payload); err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.Path); err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.NewPath); err != nil {
+			return nil, err
+		}
+		return a.client.RenameSheet(ctx, payload)
+	case "sheet.delete":
+		payload, err := decodePath(args)
+		if err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.Path); err != nil {
+			return nil, err
+		}
+		return a.client.DeleteSheet(ctx, payload.Path)
+	case "sheet.import":
+		var payload scoli.ImportSheetRequest
+		if err := decodeInput(args, &payload); err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.Path); err != nil {
+			return nil, err
+		}
+		return a.client.ImportSheet(ctx, payload)
+	case "sheet.export":
+		payload, err := decodePath(args)
+		if err != nil {
+			return nil, err
+		}
+		if err := validatePath(payload.Path); err != nil {
+			return nil, err
+		}
+		return a.client.ExportSheet(ctx, payload.Path)
 	case "folder.create":
 		var payload scoli.FolderRequest
 		if err := decodeInput(args, &payload); err != nil {

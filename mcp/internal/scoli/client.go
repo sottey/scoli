@@ -40,11 +40,29 @@ func (c *Client) GetTree(ctx context.Context, path string) (*TreeNode, error) {
 	return &out, nil
 }
 
+func (c *Client) GetSheetsTree(ctx context.Context) (*TreeNode, error) {
+	var out TreeNode
+	if err := c.doJSON(ctx, http.MethodGet, "/sheets/tree", nil, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *Client) ReadNote(ctx context.Context, path string) (*Note, error) {
 	query := url.Values{}
 	query.Set("path", path)
 	var out Note
 	if err := c.doJSON(ctx, http.MethodGet, "/notes", query, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *Client) ReadSheet(ctx context.Context, path string) (*Sheet, error) {
+	query := url.Values{}
+	query.Set("path", path)
+	var out Sheet
+	if err := c.doJSON(ctx, http.MethodGet, "/sheets", query, nil, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -58,9 +76,25 @@ func (c *Client) CreateNote(ctx context.Context, req CreateNoteRequest) (*Create
 	return &out, nil
 }
 
+func (c *Client) CreateSheet(ctx context.Context, req CreateSheetRequest) (*CreateSheetResponse, error) {
+	var out CreateSheetResponse
+	if err := c.doJSON(ctx, http.MethodPost, "/sheets", nil, req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *Client) UpdateNote(ctx context.Context, req UpdateNoteRequest) (*UpdateNoteResponse, error) {
 	var out UpdateNoteResponse
 	if err := c.doJSON(ctx, http.MethodPatch, "/notes", nil, req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *Client) UpdateSheet(ctx context.Context, req UpdateSheetRequest) (*UpdateSheetResponse, error) {
+	var out UpdateSheetResponse
+	if err := c.doJSON(ctx, http.MethodPatch, "/sheets", nil, req, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -74,6 +108,14 @@ func (c *Client) RenameNote(ctx context.Context, req RenameNoteRequest) (*Rename
 	return &out, nil
 }
 
+func (c *Client) RenameSheet(ctx context.Context, req RenameSheetRequest) (*RenameSheetResponse, error) {
+	var out RenameSheetResponse
+	if err := c.doJSON(ctx, http.MethodPatch, "/sheets/rename", nil, req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *Client) DeleteNote(ctx context.Context, path string) (*DeleteResponse, error) {
 	query := url.Values{}
 	query.Set("path", path)
@@ -82,6 +124,30 @@ func (c *Client) DeleteNote(ctx context.Context, path string) (*DeleteResponse, 
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (c *Client) DeleteSheet(ctx context.Context, path string) (*DeleteResponse, error) {
+	query := url.Values{}
+	query.Set("path", path)
+	var out DeleteResponse
+	if err := c.doJSON(ctx, http.MethodDelete, "/sheets", query, nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *Client) ImportSheet(ctx context.Context, req ImportSheetRequest) (*CreateSheetResponse, error) {
+	var out CreateSheetResponse
+	if err := c.doJSON(ctx, http.MethodPost, "/sheets/import", nil, req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *Client) ExportSheet(ctx context.Context, path string) (string, error) {
+	query := url.Values{}
+	query.Set("path", path)
+	return c.doText(ctx, http.MethodGet, "/sheets/export", query, nil)
 }
 
 func (c *Client) CreateFolder(ctx context.Context, req FolderRequest) (*FolderResponse, error) {
@@ -176,6 +242,45 @@ func (c *Client) UpdateSettings(ctx context.Context, req map[string]any) (*Setti
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (c *Client) doText(ctx context.Context, method, endpoint string, query url.Values, body any) (string, error) {
+	fullURL := c.BaseURL + endpoint
+	if len(query) > 0 {
+		fullURL += "?" + query.Encode()
+	}
+
+	var reader io.Reader
+	if body != nil {
+		payload, err := json.Marshal(body)
+		if err != nil {
+			return "", fmt.Errorf("marshal request: %w", err)
+		}
+		reader = bytes.NewReader(payload)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, reader)
+	if err != nil {
+		return "", fmt.Errorf("build request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", decodeAPIError(resp)
+	}
+
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response: %w", err)
+	}
+	return string(content), nil
 }
 
 func (c *Client) doJSON(ctx context.Context, method, endpoint string, query url.Values, body any, out any) error {

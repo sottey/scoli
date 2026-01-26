@@ -3,8 +3,8 @@
 ## Overview
 
 Scoli exposes a JSON HTTP API for notes, folders, tags, tasks, search, and
-settings. Notes live on disk under the configured notes directory; the API
-operates on paths relative to that root.
+settings. Notes and sheets live on disk under the configured notes directory;
+the API operates on paths relative to that root.
 
 ## Base URL
 
@@ -36,6 +36,7 @@ None. The API is unauthenticated and designed for local use.
 - Paths are **relative to the notes directory**.
 - Absolute paths and `..` traversal are rejected.
 - `.md` is appended automatically when creating notes unless already present.
+- `.jsh` is appended automatically when creating sheets unless already present.
 
 ## Errors
 
@@ -70,6 +71,19 @@ Typical status codes:
   "modified": "2026-01-06T10:00:00Z"
 }
 ```
+
+### Sheet
+
+```json
+{
+  "path": "Sheets/Budget.jsh",
+  "data": [["Item", "Cost"], ["Rent", "1200"]],
+  "modified": "2026-01-06T10:00:00Z"
+}
+```
+
+Note: the UI may append empty rows to fill the visible sheet height, so saved
+data can include trailing empty rows.
 
 ### Task
 
@@ -442,6 +456,141 @@ Response:
   { "tag": "work", "notes": [{ "path": "Daily/2026-01-06.md", "name": "2026-01-06.md" }] }
 ]
 ```
+
+### Sheets
+
+#### Tree
+
+`GET /sheets/tree`
+
+Returns the sheets tree under `Sheets/`.
+
+Sheet paths are relative to `Sheets/` (the root is omitted in API calls).
+
+Response:
+
+```json
+{
+  "name": "Sheets",
+  "path": "",
+  "type": "folder",
+  "children": [
+    { "name": "Budget.jsh", "path": "Budget.jsh", "type": "sheet" }
+  ]
+}
+```
+
+#### Read
+
+`GET /sheets?path=<file>`
+
+Example:
+
+```
+GET /sheets?path=Budget.jsh
+```
+
+Response:
+
+```json
+{
+  "path": "Budget.jsh",
+  "data": [["Item", "Cost"], ["Rent", "1200"]],
+  "modified": "2026-01-06T10:00:00Z"
+}
+```
+
+#### Create
+
+`POST /sheets`
+
+Body:
+
+```json
+{
+  "path": "Budget",
+  "data": [["Item", "Cost"], ["Rent", "1200"]]
+}
+```
+
+Response:
+
+```json
+{ "path": "Budget.jsh" }
+```
+
+#### Update
+
+`PATCH /sheets`
+
+Body:
+
+```json
+{
+  "path": "Budget.jsh",
+  "data": [["Item", "Cost"], ["Rent", "1250"]]
+}
+```
+
+Response:
+
+```json
+{ "path": "Budget.jsh" }
+```
+
+#### Rename
+
+`PATCH /sheets/rename`
+
+Body:
+
+```json
+{
+  "path": "Budget.jsh",
+  "newPath": "Budget-2026"
+}
+```
+
+Response:
+
+```json
+{ "path": "Budget.jsh", "newPath": "Budget-2026.jsh" }
+```
+
+#### Delete
+
+`DELETE /sheets?path=<file>`
+
+Response:
+
+```json
+{ "status": "deleted" }
+```
+
+#### Import CSV
+
+`POST /sheets/import`
+
+Body:
+
+```json
+{
+  "path": "Budget",
+  "csv": "Item,Cost\nRent,1200\n"
+}
+```
+
+Response:
+
+```json
+{ "path": "Budget.jsh" }
+```
+
+#### Export CSV
+
+`GET /sheets/export?path=<file>`
+
+Returns `text/csv` with a `Content-Disposition` attachment filename.
 
 ### Tasks
 

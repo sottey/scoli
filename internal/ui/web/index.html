@@ -8,6 +8,9 @@
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="manifest" href="/manifest.json?v=6" />
   <link rel="stylesheet" href="/vendor/highlight.css" />
+  <link rel="stylesheet" href="/vendor/jsuites.css" />
+  <link rel="stylesheet" href="/vendor/jspreadsheet-ce.css" />
+  <link rel="stylesheet" href="/vendor/jspreadsheet-themes.css" />
   <link rel="stylesheet" href="/styles.css?v=6" />
 </head>
 <body>
@@ -182,6 +185,10 @@
           <div id="asset-preview" class="asset-preview hidden"></div>
           <div id="pdf-preview" class="pdf-preview hidden"></div>
           <div id="csv-preview" class="csv-preview hidden"></div>
+          <div id="sheet-panel" class="sheet-panel hidden">
+            <div id="sheet-grid" class="sheet-grid"></div>
+            <input id="sheet-file-input" class="hidden" type="file" accept=".csv,text/csv" />
+          </div>
           <div id="preview" class="preview"></div>
           <div id="task-list" class="task-list hidden"></div>
           <div id="summary-panel" class="summary-panel hidden"></div>
@@ -291,6 +298,8 @@
 
   <script src="/vendor/markdown-it.min.js"></script>
   <script src="/vendor/highlight.min.js"></script>
+  <script src="/vendor/jsuites.js"></script>
+  <script src="/vendor/jspreadsheet-ce.js"></script>
   <script src="/app.js?v=6"></script>
 </body>
 </html>

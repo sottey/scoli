@@ -21,6 +21,7 @@ var allowedRootIconKeys = map[string]struct{}{
 	"tags":    {},
 	"journal": {},
 	"inbox":   {},
+	"sheets":  {},
 }
 
 func (s *Server) handleRootIconUpload(w http.ResponseWriter, r *http.Request) {

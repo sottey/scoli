@@ -11,6 +11,7 @@ This file documents the current project shape and interaction model.
   tags root.
 - Left sidebar shows a `Tasks` root with project groups, a "Today" group,
   a "Someday" group, a "No Project" group, a "Completed" group, and an "All" group (always last).
+- Left sidebar shows a `Sheets` root with spreadsheet files (`.jsh`) stored under `Sheets/`.
 - Left sidebar includes a `Journal` root below Tasks and above Tags that opens a
   rolling journal feed, with archive files shown as children under the Journal root.
 - Sidebar folder, task, and tag rows display immediate-child counts in the label.
@@ -55,12 +56,16 @@ This file documents the current project shape and interaction model.
 - Editor and preview panes scroll together (proportional sync).
 - Folder and tag rows show centered chevrons indicating expanded/collapsed
   state.
+- Sheets use a Jspreadsheet CE grid with column resizing, right-click context
+  menus (including import/export), and automatic column/row sizing to fill the
+  visible pane.
 - The header includes a Scratch Pad button that opens a modal note stored as
   `scratch.md` at the notes root (hidden from the tree), with a Move To Inbox
   action that appends its contents to `Inbox.md` and clears the scratch pad.
 - Root nodes include a "Change Icon" context menu action that stores the icon
   under `internal/ui/web/icons` and records the path in settings.
 - Notes save automatically shortly after changes (debounced save-on-change).
+- Sheets are stored as JSON (`.jsh`) under `Sheets/` and support CSV import/export.
 - The command palette (Ctrl+Alt+K) supports built-in commands and optional
   external commands loaded from `externalCommandsPath` in settings. Use `>` in
   the palette to search notes by filename/content.
@@ -87,11 +92,14 @@ This file documents the current project shape and interaction model.
 - List tags extracted from note contents.
 - Parse tasks from note contents and toggle completion by editing note lines.
 - Read/write settings stored in `Notes/settings.json`.
+- Read/write sheets stored under `Sheets/`.
 
 ## UI responsibilities
 - Render the folder tree and handle context menus.
 - Render the tags root and tag groups.
 - Render the tasks root and project groups, and show task lists in the main pane.
+- Render the sheets root and spreadsheet grid with CSV import/export (via
+  context menu).
 - Render the journal root and feed view.
 - Render the Markdown editor, preview, and split view with draggable splitter.
 - Task list rows include a checkbox toggle and open the source note on click.
@@ -137,6 +145,15 @@ This file documents the current project shape and interaction model.
   - `GET /api/v1/search?query=<text>` searches note filenames + contents.
 - **Tags**:
   - `GET /api/v1/tags` returns tags with the notes that contain them.
+- **Sheets**:
+  - `GET /api/v1/sheets/tree` returns the sheets tree under `Sheets/`.
+  - `GET /api/v1/sheets?path=<file>` returns sheet JSON.
+  - `POST /api/v1/sheets` creates a sheet.
+  - `PATCH /api/v1/sheets` updates a sheet.
+  - `PATCH /api/v1/sheets/rename` renames or moves a sheet.
+  - `DELETE /api/v1/sheets?path=<file>` deletes a sheet.
+  - `POST /api/v1/sheets/import` imports CSV into a new sheet.
+  - `GET /api/v1/sheets/export?path=<file>` exports a sheet as CSV.
 - **Tasks**:
   - `GET /api/v1/tasks` returns tasks parsed from notes.
   - `PATCH /api/v1/tasks/toggle` toggles completion for a task line.
@@ -151,6 +168,7 @@ This file documents the current project shape and interaction model.
 - Tree responses include metadata only, never file contents.
 - If a note path is missing the `.md` extension, it is appended on create.
 - Only `.md` files are considered notes; other files are ignored.
+- Sheet files use the `.jsh` extension and live under `Sheets/`.
 - Files starting with `._` are ignored.
 - Tags match `#` followed by letters, preceded by whitespace or start of line.
 - Tasks are parsed from note lines starting with `- [ ] ` or `- [x] ` (leading whitespace ok).
