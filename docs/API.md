@@ -59,6 +59,7 @@ Typical status codes:
 - Tags, projects, and mentions are normalized to lowercase.
 - Task due dates are parsed into `YYYY-MM-DD` when possible and warnings are
   returned when parsing fails.
+- Metadata inside fenced or indented code blocks, or inline code spans, is ignored.
 
 ## Data models
 

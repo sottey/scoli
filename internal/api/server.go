@@ -507,7 +507,8 @@ func (s *Server) handleTags(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil
 		}
-		matches := tagPattern.FindAllStringSubmatch(string(data), -1)
+		cleaned := stripCodeBlocksAndInline(string(data))
+		matches := tagPattern.FindAllStringSubmatch(cleaned, -1)
 		if len(matches) == 0 {
 			return nil
 		}
@@ -587,7 +588,8 @@ func (s *Server) handleMentions(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil
 		}
-		matches := taskMentionPattern.FindAllStringSubmatch(string(data), -1)
+		cleaned := stripCodeBlocksAndInline(string(data))
+		matches := taskMentionPattern.FindAllStringSubmatch(cleaned, -1)
 		if len(matches) == 0 {
 			return nil
 		}

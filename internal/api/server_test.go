@@ -811,6 +811,57 @@ func TestTagsEndpoint(t *testing.T) {
 	}
 }
 
+func TestTagsAndMentionsIgnoreCodeBlocks(t *testing.T) {
+	dir, router := setupTestRouter(t)
+	content := strings.Join([]string{
+		"Outside #Keep @Keep",
+		"",
+		"`#Inline` and `@inline` should not count",
+		"",
+		"```",
+		"#Nope @Nope",
+		"- [ ] Task in code #Nope @Nope",
+		"```",
+		"",
+		"    #IndentedNope @IndentedNope",
+	}, "\n")
+	writeFile(t, filepath.Join(dir, "alpha.md"), content)
+
+	rec := doRequest(t, router, http.MethodGet, "/tags", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var tags []TagGroup
+	decodeJSONBody(t, rec, &tags)
+	found := make(map[string]bool)
+	for _, group := range tags {
+		found[group.Tag] = true
+	}
+	if !found["Keep"] {
+		t.Fatalf("expected Keep tag")
+	}
+	if found["Inline"] || found["Nope"] || found["IndentedNope"] {
+		t.Fatalf("expected code block tags to be excluded, got %#v", found)
+	}
+
+	rec = doRequest(t, router, http.MethodGet, "/mentions", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var mentions []MentionGroup
+	decodeJSONBody(t, rec, &mentions)
+	mentionFound := make(map[string]bool)
+	for _, group := range mentions {
+		mentionFound[group.Mention] = true
+	}
+	if !mentionFound["keep"] {
+		t.Fatalf("expected keep mention")
+	}
+	if mentionFound["inline"] || mentionFound["nope"] || mentionFound["indentednope"] {
+		t.Fatalf("expected code block mentions to be excluded, got %#v", mentionFound)
+	}
+}
+
 func TestFilesEndpoint(t *testing.T) {
 	dir, router := setupTestRouter(t)
 	writeFile(t, filepath.Join(dir, "asset.png"), "binary")

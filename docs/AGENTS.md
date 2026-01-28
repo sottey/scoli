@@ -185,6 +185,7 @@ This file documents the current project shape and interaction model.
   case-insensitive and normalized to lowercase.
 - Tasks are parsed from note lines starting with `- [ ] ` or `- [x] ` (leading whitespace ok).
 - Task markers: `#tag`, `@mention`, `+project`, `>due`, `^priority` (1-5); markers are case-insensitive and normalized to lowercase.
+- Metadata inside fenced or indented code blocks, or inline code spans, is ignored.
 - Only one project is used per task (first match wins).
 - Settings live in `Notes/settings.json`.
 - If a folder contains `default.template`, new notes created in that folder use

@@ -37,8 +37,12 @@ type ParsedTodo struct {
 func parseTodoLines(content string) []ParsedTodo {
 	lines := strings.Split(content, "\n")
 	todos := make([]ParsedTodo, 0)
+	tracker := &codeBlockTracker{}
 	for i, line := range lines {
 		raw := strings.TrimSuffix(line, "\r")
+		if tracker.isCodeLine(raw) {
+			continue
+		}
 		loc := todoLinePattern.FindStringIndex(raw)
 		if loc == nil {
 			continue
@@ -53,11 +57,12 @@ func parseTodoLines(content string) []ParsedTodo {
 		}
 
 		completed := match[1] != " "
-		project := extractFirstMatch(taskProjectPattern, rest)
-		tags := extractMatches(taskTagPattern, rest)
-		mentions := extractMatches(taskMentionPattern, rest)
-		priority := extractPriority(rest)
-		dueRaw := extractDueDate(rest)
+		restForMeta := stripInlineCode(rest)
+		project := extractFirstMatch(taskProjectPattern, restForMeta)
+		tags := extractMatches(taskTagPattern, restForMeta)
+		mentions := extractMatches(taskMentionPattern, restForMeta)
+		priority := extractPriority(restForMeta)
+		dueRaw := extractDueDate(restForMeta)
 		dueISO, dueValid := normalizeDueDate(dueRaw)
 
 		text := cleanTaskText(rest)
@@ -207,9 +212,14 @@ func normalizeDueDate(raw string) (string, bool) {
 }
 
 func cleanTaskText(text string) string {
-	cleaned := taskTokenPattern.ReplaceAllString(text, " ")
+	masked, replacements := maskInlineCode(text)
+	cleaned := taskTokenPattern.ReplaceAllString(masked, " ")
 	cleaned = strings.Join(strings.Fields(cleaned), " ")
-	return strings.TrimSpace(cleaned)
+	cleaned = strings.TrimSpace(cleaned)
+	if len(replacements) == 0 {
+		return cleaned
+	}
+	return strings.TrimSpace(restoreInlineCode(cleaned, replacements))
 }
 
 func hashLine(line string) string {
