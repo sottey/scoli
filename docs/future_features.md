@@ -1,5 +1,7 @@
 ## TODO
-
+- [ ] Template manager UI: templates are powerful but hidden; add a simple “Templates” view or a quick editor that lists all default template files.
+- [ ] CSV import/export polish for Sheets: round out with column type inference and per-sheet settings (freeze header, default column widths).
+- [ ] Search improvements: show snippet matches with highlighted terms and a “search in folder” option.
 
 ## MAYBE SOMEDAY
 - [ ] Flash cards Node - Ability to set texst for a "front" and a "back" and the ability to run through a deck
@@ -31,3 +33,6 @@
 - [X] If there is a "Daily" folder and a note for this day in the form YYYY-MM-DD does not exist in it, create a new note with today's date in the format YYYY-MM-DD and, if in the daily folder there is a default.template file, use its contents for the new note
 - [X] task filters by tag/mention/project across parsed note tasks
     Example: * This is a task in the +Home project and is due >2025-12-27 and is priority ^3 #home #test
+- [X] Mentions view parity with Tags: already aggregates mentions; add quick actions (open all, filter by project/date) to match Tasks/Tabs usability.
+- [X] Better daily/journal cross-linking: link journal entries to a daily note (auto-create if missing) for more cohesion.
+- [X] Task filtering + saved task views: users already rely on tags/mentions/projects; add saved filters (e.g., “Work + Due this week”) and pin them in the Tasks tree.

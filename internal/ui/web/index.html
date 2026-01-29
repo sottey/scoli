@@ -220,6 +220,13 @@
         </button>
         <div id="tag-pills" class="tag-pills"></div>
       </div>
+      <section id="daily-journal-panel" class="daily-journal-panel hidden" aria-label="Daily journal">
+        <div class="daily-journal-header">
+          <div class="daily-journal-title" id="daily-journal-title">Journal</div>
+          <button id="daily-journal-new" class="ghost" type="button">New Journal Entry</button>
+        </div>
+        <div id="daily-journal-list" class="daily-journal-list"></div>
+      </section>
     </main>
   </div>
 
@@ -277,6 +284,24 @@
         <button id="scratch-dialog-cancel" class="ghost" type="button">Close</button>
         <button id="scratch-dialog-move" class="ghost" type="button">Move To Inbox</button>
         <button id="scratch-dialog-save" class="primary" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+  <div id="task-filters-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Task filters">
+    <div class="modal-backdrop" data-action="close"></div>
+    <div class="modal-card scratch-modal-card" role="document">
+      <div class="modal-header">
+        <div class="modal-title">Task Filters</div>
+        <button id="task-filters-close" class="ghost icon-btn" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <textarea id="task-filters-text" class="modal-textarea" rows="12" placeholder="Paste task filter JSON..."></textarea>
+      <div class="modal-actions">
+        <button id="task-filters-cancel" class="ghost" type="button">Cancel</button>
+        <button id="task-filters-save" class="primary" type="button">Save</button>
       </div>
     </div>
   </div>

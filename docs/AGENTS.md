@@ -10,7 +10,7 @@ This file documents the current project shape and interaction model.
 - Left sidebar shows the `Notes/` directory tree (folders + `.md` files) plus
   Tags and Mentions roots.
 - Left sidebar shows a `Tasks` root with project groups, a "Today" group,
-  a "Someday" group, a "No Project" group, a "Completed" group, and an "All" group (always last).
+  a "Someday" group, a "Task Filters" group, a "No Project" group, a "Completed" group, and an "All" group (always last).
 - Left sidebar shows a `Sheets` root with spreadsheet files (`.jsh`) stored under `Sheets/`.
 - Left sidebar includes a `Journal` root below Tasks and above Tags that opens a
   rolling journal feed, with archive files shown as children under the Journal root.
@@ -21,9 +21,11 @@ This file documents the current project shape and interaction model.
 - "Created" sorting uses best-effort file creation time and may fall back to modified time.
 - Clicking Notes/Tags roots or any folder shows a summary panel in the main pane.
 - Clicking Tasks root or any project group shows a task list in the main pane.
+- Clicking "Task Filters" shows a filter selector and task list for the selected filter.
 - Clicking Journal shows a rolling feed with a compose box, inline edit, delete,
   archive actions, and an Archive All button. Archive files open read-only feeds.
 - Journal entry editors use Enter to save and Opt-Enter for a newline.
+- Daily notes show a read-only journal panel below the tag bar with "Edit in Journal" and a "New Journal Entry" shortcut.
 - Clicking "Today" shows incomplete tasks that are due today or earlier (or have no due date),
   excluding tasks tagged `#someday`.
 - Clicking "Someday" shows incomplete tasks tagged `#someday`.
@@ -168,6 +170,9 @@ This file documents the current project shape and interaction model.
   - `GET /api/v1/tasks` returns tasks parsed from notes.
   - `PATCH /api/v1/tasks/toggle` toggles completion for a task line.
   - `PATCH /api/v1/tasks/archive` archives completed tasks by prefixing `~ `.
+- **Task Filters**:
+  - `GET /api/v1/tasks/filters` returns task filters from `task-sets.json`.
+  - `PUT /api/v1/tasks/filters` updates task filters.
 - **Settings**:
   - `GET /api/v1/settings` returns settings.
   - `PATCH /api/v1/settings` updates settings.
@@ -188,6 +193,7 @@ This file documents the current project shape and interaction model.
 - Metadata inside fenced or indented code blocks, or inline code spans, is ignored.
 - Only one project is used per task (first match wins).
 - Settings live in `Notes/settings.json`.
+- Task filters live in `Notes/task-sets.json`.
 - If a folder contains `default.template`, new notes created in that folder use
   the template contents.
 

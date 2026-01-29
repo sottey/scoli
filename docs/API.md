@@ -676,6 +676,51 @@ Response:
 { "archived": 12, "files": 3 }
 ```
 
+### Task Filters
+
+Task filters are stored in `Notes/task-sets.json`.
+
+#### Get filters
+
+`GET /tasks/filters`
+
+Response:
+
+```json
+{
+  "filters": {
+    "version": 1,
+    "filters": [
+      {
+        "id": "work-due-soon",
+        "name": "Work Due Soon",
+        "tags": ["work"],
+        "mentions": [],
+        "projects": ["work"],
+        "due": { "from": "today", "to": "+7d" },
+        "priority": { "min": 2, "max": 5 },
+        "completed": false,
+        "text": "",
+        "pathPrefix": "Projects/"
+      }
+    ]
+  }
+}
+```
+
+#### Update filters
+
+`PUT /tasks/filters`
+
+Body:
+
+```json
+{
+  "version": 1,
+  "filters": []
+}
+```
+
 ### Journal
 
 #### List entries

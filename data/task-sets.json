@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "filters": [
+    {
+      "id": "work-open-this-week",
+      "name": "Open Work Tasks (This Week)",
+      "projects": [
+        "work"
+      ],
+      "due": {
+        "from": "today",
+        "to": "+7d"
+      },
+      "completed": false
+    },
+    {
+      "id": "home-open-this-week",
+      "name": "Open Home Tasks (This Week)",
+      "projects": [
+        "home"
+      ],
+      "due": {
+        "from": "today",
+        "to": "+7d"
+      },
+      "completed": false
+    },
+    {
+      "id": "cottage",
+      "name": "Open Cottage Tasks",
+      "projects": [
+        "cottage"
+      ],
+      "completed": false
+    }
+  ]
+}

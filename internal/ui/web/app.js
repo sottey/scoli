@@ -29,6 +29,10 @@ const searchResults = document.getElementById("search-results");
 const tagBar = document.getElementById("tag-bar");
 const tagAddBtn = document.getElementById("tag-add-btn");
 const tagPills = document.getElementById("tag-pills");
+const dailyJournalPanel = document.getElementById("daily-journal-panel");
+const dailyJournalTitle = document.getElementById("daily-journal-title");
+const dailyJournalList = document.getElementById("daily-journal-list");
+const dailyJournalNewBtn = document.getElementById("daily-journal-new");
 const assetPreview = document.getElementById("asset-preview");
 const pdfPreview = document.getElementById("pdf-preview");
 const csvPreview = document.getElementById("csv-preview");
@@ -66,6 +70,12 @@ const scratchDialogCancel = document.getElementById("scratch-dialog-cancel");
 const scratchDialogMove = document.getElementById("scratch-dialog-move");
 const scratchDialogSave = document.getElementById("scratch-dialog-save");
 const scratchDialogBackdrop = scratchDialog ? scratchDialog.querySelector(".modal-backdrop") : null;
+const taskFiltersModal = document.getElementById("task-filters-modal");
+const taskFiltersText = document.getElementById("task-filters-text");
+const taskFiltersClose = document.getElementById("task-filters-close");
+const taskFiltersCancel = document.getElementById("task-filters-cancel");
+const taskFiltersSave = document.getElementById("task-filters-save");
+const taskFiltersBackdrop = taskFiltersModal ? taskFiltersModal.querySelector(".modal-backdrop") : null;
 const whatsNewModal = document.getElementById("whats-new-modal");
 const whatsNewList = document.getElementById("whats-new-list");
 const whatsNewClose = document.getElementById("whats-new-close");
@@ -92,6 +102,8 @@ let currentSheetsTree = null;
 let currentTags = [];
 let currentMentions = [];
 let currentTasks = [];
+let currentTaskFilters = { version: 1, filters: [] };
+let currentTaskFilterId = "";
 let journalEntries = [];
 let journalSummary = { archives: [], totalCount: 0 };
 let journalViewMode = "main";
@@ -583,7 +595,7 @@ function syncEditorFromPreview() {
   const nextContent = serializePreviewToMarkdown();
   if (editor.value !== nextContent) {
     editor.value = nextContent;
-    renderTagBar(extractTags(nextContent));
+    renderTagBarFromContent(nextContent);
     isDirty = true;
     saveBtn.disabled = !currentNotePath;
     scheduleNoteSave();
@@ -931,6 +943,26 @@ function extractTags(text) {
   return tags;
 }
 
+function extractMentions(text) {
+  if (!text) {
+    return [];
+  }
+  const pattern = /(^|\s)@([A-Za-z]+)\b/g;
+  const seen = new Set();
+  const mentions = [];
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const mention = match[2];
+    const key = mention.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    mentions.push(mention);
+  }
+  return mentions;
+}
+
 function isBlankLine(line) {
   return !line || line.trim() === "";
 }
@@ -1136,7 +1168,7 @@ function moveCompletedTasksToDoneSection(text) {
   return { text: result, movedBlocks: movedBlocks.length };
 }
 
-function renderTagBar(tags) {
+function renderTagBar(tags, mentions = []) {
   tagPills.innerHTML = "";
   if (!currentNotePath) {
     tagBar.classList.add("hidden");
@@ -1151,7 +1183,188 @@ function renderTagBar(tags) {
     pill.addEventListener("click", () => openTagGroup(tag));
     tagPills.appendChild(pill);
   });
+  (mentions || []).forEach((mention) => {
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = "tag-pill";
+    pill.textContent = `@${mention}`;
+    pill.style.backgroundColor = getTagColor(mention);
+    pill.addEventListener("click", () => openMentionGroup(mention));
+    tagPills.appendChild(pill);
+  });
   tagBar.classList.remove("hidden");
+}
+
+function renderTagBarFromContent(text) {
+  renderTagBar(extractTags(text), extractMentions(text));
+}
+
+function hideDailyJournalPanel() {
+  if (!dailyJournalPanel) {
+    return;
+  }
+  dailyJournalPanel.classList.add("hidden");
+  if (dailyJournalList) {
+    dailyJournalList.innerHTML = "";
+  }
+}
+
+function getDailyDateFromPath(path) {
+  if (!isDailyPath(path)) {
+    return "";
+  }
+  const parts = String(path || "").split("/").filter(Boolean);
+  if (parts.length === 0) {
+    return "";
+  }
+  const last = parts[parts.length - 1];
+  const base = last.replace(/\.md$/i, "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(base)) {
+    return "";
+  }
+  return base;
+}
+
+function dateKeyFromTimestamp(value) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return formatDailyDate(date);
+}
+
+function renderDailyJournalPanel(dateKey, entries) {
+  if (!dailyJournalPanel || !dailyJournalList) {
+    return;
+  }
+  if (dailyJournalTitle) {
+    dailyJournalTitle.textContent = `Journal for ${dateKey}`;
+  }
+  dailyJournalList.innerHTML = "";
+  if (!entries || entries.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "daily-journal-empty";
+    empty.textContent = "No journal entries yet.";
+    dailyJournalList.appendChild(empty);
+    return;
+  }
+  entries.forEach((entry) => {
+    const card = document.createElement("div");
+    card.className = "daily-journal-entry";
+    card.dataset.id = entry.id;
+
+    const meta = document.createElement("div");
+    meta.className = "daily-journal-meta";
+    const created = formatJournalTimestamp(entry.createdAt);
+    meta.textContent = created ? `Created ${created}` : "Created";
+
+    const content = document.createElement("div");
+    content.className = "daily-journal-content";
+    content.textContent = entry.content || "";
+
+    const actions = document.createElement("div");
+    actions.className = "daily-journal-actions";
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "ghost";
+    editBtn.textContent = "Edit in Journal";
+    editBtn.addEventListener("click", () => openJournalEntry(entry.id));
+    actions.appendChild(editBtn);
+
+    card.appendChild(meta);
+    card.appendChild(content);
+    card.appendChild(actions);
+    dailyJournalList.appendChild(card);
+  });
+}
+
+async function updateDailyJournalPanel(path, options = {}) {
+  const dateKey = getDailyDateFromPath(path);
+  if (!dateKey) {
+    hideDailyJournalPanel();
+    return;
+  }
+  if (!dailyJournalPanel || !dailyJournalList) {
+    return;
+  }
+  dailyJournalPanel.classList.remove("hidden");
+  if (!options.silent) {
+    dailyJournalList.innerHTML = "";
+    const loading = document.createElement("div");
+    loading.className = "daily-journal-loading";
+    loading.textContent = "Loading journal entries...";
+    dailyJournalList.appendChild(loading);
+  }
+  try {
+    const response = await apiFetch("/journal");
+    const entries = (response.entries || [])
+      .filter((entry) => dateKeyFromTimestamp(entry.createdAt) === dateKey)
+      .sort((a, b) => {
+        const aDate = new Date(a.createdAt).getTime();
+        const bDate = new Date(b.createdAt).getTime();
+        if (Number.isNaN(aDate) || Number.isNaN(bDate)) {
+          return 0;
+        }
+        return bDate - aDate;
+      });
+    renderDailyJournalPanel(dateKey, entries);
+  } catch (err) {
+    dailyJournalList.innerHTML = "";
+    const error = document.createElement("div");
+    error.className = "daily-journal-empty";
+    error.textContent = "Unable to load journal entries.";
+    dailyJournalList.appendChild(error);
+  }
+}
+
+function focusJournalEntry(id) {
+  if (!journalFeed || !id) {
+    return;
+  }
+  const card = journalFeed.querySelector(`.journal-entry[data-id="${CSS.escape(id)}"]`);
+  if (!card) {
+    return;
+  }
+  card.scrollIntoView({ block: "center" });
+  card.classList.add("journal-entry-focus");
+  setTimeout(() => {
+    card.classList.remove("journal-entry-focus");
+  }, 2000);
+}
+
+async function openJournalEntry(id) {
+  if (!id) {
+    return;
+  }
+  showJournal();
+  try {
+    await loadJournalEntries();
+    focusJournalEntry(id);
+  } catch (err) {
+    console.warn("Unable to focus journal entry", err);
+  }
+}
+
+function openJournalForDate(dateKey) {
+  showJournal();
+  if (!journalInput) {
+    return;
+  }
+  setTimeout(() => journalInput.focus(), 0);
+}
+
+function refreshDailyJournalPanelIfActive() {
+  if (currentMode !== "note") {
+    return;
+  }
+  const dateKey = getDailyDateFromPath(currentNotePath);
+  if (!dateKey) {
+    return;
+  }
+  updateDailyJournalPanel(currentNotePath, { silent: true });
 }
 
 function showTaskList(title, tasks, summaryText) {
@@ -1168,6 +1381,7 @@ function showTaskList(title, tasks, summaryText) {
     moveCompletedBtn.disabled = true;
   }
   tagBar.classList.add("hidden");
+  hideDailyJournalPanel();
   viewSelector.classList.add("hidden");
   viewButtons.forEach((btn) => {
     btn.disabled = true;
@@ -1194,6 +1408,269 @@ function showTaskList(title, tasks, summaryText) {
   previewPane.classList.remove("hidden");
   setView("preview", true);
   renderTaskList(title, tasks, summaryText);
+}
+
+function showTaskFiltersView(selectedId = "") {
+  if (currentMode === "note") {
+    lastNoteView = app.dataset.view;
+  }
+  currentMode = "task-filters";
+  currentActivePath = "__task_filters__";
+  setActiveNode(currentActivePath);
+  setPreviewEditable(false);
+  currentNotePath = "";
+  currentSheetPath = "";
+  notePath.textContent = "Task Filters";
+  saveBtn.disabled = true;
+  if (moveCompletedBtn) {
+    moveCompletedBtn.disabled = true;
+  }
+  tagBar.classList.add("hidden");
+  hideDailyJournalPanel();
+  viewSelector.classList.add("hidden");
+  viewButtons.forEach((btn) => {
+    btn.disabled = true;
+  });
+  summaryPanel.classList.add("hidden");
+  settingsPanel.classList.add("hidden");
+  if (journalPanel) {
+    journalPanel.classList.add("hidden");
+  }
+  if (sheetPanel) {
+    sheetPanel.classList.add("hidden");
+  }
+  editor.classList.add("hidden");
+  preview.classList.add("hidden");
+  assetPreview.classList.add("hidden");
+  assetPreview.innerHTML = "";
+  pdfPreview.classList.add("hidden");
+  pdfPreview.innerHTML = "";
+  csvPreview.classList.add("hidden");
+  csvPreview.innerHTML = "";
+  taskList.classList.remove("hidden");
+  editorPane.classList.add("hidden");
+  paneResizer.classList.add("hidden");
+  previewPane.classList.remove("hidden");
+  setView("preview", true);
+  renderTaskFiltersPanel(selectedId);
+}
+
+function getTaskFilters() {
+  const filters = currentTaskFilters && Array.isArray(currentTaskFilters.filters)
+    ? currentTaskFilters.filters
+    : [];
+  return [...filters].sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" })
+  );
+}
+
+function renderTaskFiltersPanel(selectedId = "") {
+  taskList.innerHTML = "";
+
+  const filters = getTaskFilters();
+  const header = document.createElement("div");
+  header.className = "task-list-header";
+
+  const heading = document.createElement("h2");
+  heading.className = "task-list-title";
+  heading.textContent = "Task Filters";
+  header.appendChild(heading);
+
+  const controls = document.createElement("div");
+  controls.className = "task-filter-controls";
+
+  const select = document.createElement("select");
+  select.className = "task-filter-select";
+  select.disabled = filters.length === 0;
+  filters.forEach((filter) => {
+    const option = document.createElement("option");
+    option.value = filter.id;
+    option.textContent = filter.name;
+    select.appendChild(option);
+  });
+
+  let activeId = selectedId || currentTaskFilterId;
+  if (!activeId && filters.length > 0) {
+    activeId = filters[0].id;
+  }
+  if (activeId) {
+    select.value = activeId;
+  }
+  currentTaskFilterId = activeId;
+
+  select.addEventListener("change", () => {
+    currentTaskFilterId = select.value;
+    renderTaskFiltersPanel(currentTaskFilterId);
+  });
+
+  const manageBtn = document.createElement("button");
+  manageBtn.type = "button";
+  manageBtn.className = "ghost";
+  manageBtn.textContent = "Manage Filters";
+  manageBtn.addEventListener("click", () => openTaskFiltersModal());
+
+  controls.appendChild(select);
+  controls.appendChild(manageBtn);
+  header.appendChild(controls);
+  taskList.appendChild(header);
+
+  if (filters.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "search-empty";
+    empty.textContent = "No task filters configured.";
+    taskList.appendChild(empty);
+    return;
+  }
+
+  const activeFilter = filters.find((filter) => filter.id === activeId) || filters[0];
+  if (!activeFilter) {
+    const empty = document.createElement("div");
+    empty.className = "search-empty";
+    empty.textContent = "No task filters configured.";
+    taskList.appendChild(empty);
+    return;
+  }
+
+  const filtered = sortTasksForFilter(applyTaskFilter(currentTasks || [], activeFilter));
+  const summary = document.createElement("div");
+  summary.className = "task-list-summary";
+  summary.textContent = `${filtered.length} task${filtered.length === 1 ? "" : "s"}`;
+  header.appendChild(summary);
+
+  const list = document.createElement("div");
+  list.className = "task-items";
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "search-empty";
+    empty.textContent = "No tasks to show.";
+    list.appendChild(empty);
+  } else {
+    filtered.forEach((task) => {
+      list.appendChild(buildTaskListItem(task));
+    });
+  }
+  taskList.appendChild(list);
+  taskList.scrollTop = 0;
+  requestAnimationFrame(() => updateTaskMetaOverflow());
+}
+
+function normalizeFilterValues(values) {
+  return (values || [])
+    .map((value) => String(value || "").trim().toLowerCase())
+    .filter((value) => value);
+}
+
+function resolveFilterDate(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) {
+    return "";
+  }
+  if (raw === "today") {
+    return formatDailyDate(new Date());
+  }
+  const relativeMatch = raw.match(/^\+(\d+)d$/);
+  if (relativeMatch) {
+    const days = Number(relativeMatch[1] || 0);
+    if (Number.isFinite(days)) {
+      const base = new Date();
+      base.setDate(base.getDate() + days);
+      return formatDailyDate(base);
+    }
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
+  }
+  return "";
+}
+
+function applyTaskFilter(tasks, filter) {
+  if (!filter) {
+    return tasks || [];
+  }
+  const tags = normalizeFilterValues(filter.tags);
+  const mentions = normalizeFilterValues(filter.mentions);
+  const projects = normalizeFilterValues(filter.projects);
+  const text = String(filter.text || "").trim().toLowerCase();
+  const pathPrefix = String(filter.pathPrefix || "").trim().toLowerCase();
+  const completed = filter.completed;
+  const fromKey = filter.due ? resolveFilterDate(filter.due.from) : "";
+  const toKey = filter.due ? resolveFilterDate(filter.due.to) : "";
+  const minPriority = filter.priority && Number.isFinite(filter.priority.min) ? Number(filter.priority.min) : null;
+  const maxPriority = filter.priority && Number.isFinite(filter.priority.max) ? Number(filter.priority.max) : null;
+
+  return (tasks || []).filter((task) => {
+    if (typeof completed === "boolean") {
+      if (!!task.completed !== completed) {
+        return false;
+      }
+    }
+
+    if (projects.length > 0) {
+      const project = String(task.project || "").toLowerCase();
+      if (!projects.includes(project)) {
+        return false;
+      }
+    }
+
+    if (tags.length > 0) {
+      const taskTags = normalizeFilterValues(task.tags);
+      if (!tags.every((tag) => taskTags.includes(tag))) {
+        return false;
+      }
+    }
+
+    if (mentions.length > 0) {
+      const taskMentions = normalizeFilterValues(task.mentions);
+      if (!mentions.every((mention) => taskMentions.includes(mention))) {
+        return false;
+      }
+    }
+
+    if (text) {
+      const target = String(task.text || "").toLowerCase();
+      if (!target.includes(text)) {
+        return false;
+      }
+    }
+
+    if (pathPrefix) {
+      const path = String(task.path || "").toLowerCase();
+      if (!path.startsWith(pathPrefix)) {
+        return false;
+      }
+    }
+
+    if (fromKey || toKey) {
+      const due = task.dueDateISO;
+      if (!due) {
+        return false;
+      }
+      if (fromKey && due < fromKey) {
+        return false;
+      }
+      if (toKey && due > toKey) {
+        return false;
+      }
+    }
+
+    if (minPriority !== null || maxPriority !== null) {
+      const priority = Number(task.priority) || 0;
+      if (minPriority !== null && priority < minPriority) {
+        return false;
+      }
+      if (maxPriority !== null && priority > maxPriority) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function sortTasksForFilter(tasks) {
+  const sorted = [...(tasks || [])];
+  sorted.sort(compareTasksBySchedule);
+  return sorted;
 }
 
 function showNoteEditor() {
@@ -1244,6 +1721,7 @@ function showSheetEditor() {
     sheetPanel.classList.remove("hidden");
   }
   tagBar.classList.add("hidden");
+  hideDailyJournalPanel();
   viewSelector.classList.add("hidden");
   viewButtons.forEach((btn) => {
     btn.disabled = true;
@@ -1270,6 +1748,7 @@ function showSummary(title, items, action) {
     moveCompletedBtn.disabled = true;
   }
   tagBar.classList.add("hidden");
+  hideDailyJournalPanel();
   viewSelector.classList.add("hidden");
   viewButtons.forEach((btn) => {
     btn.disabled = true;
@@ -1361,6 +1840,7 @@ function showJournal() {
     moveCompletedBtn.disabled = true;
   }
   tagBar.classList.add("hidden");
+  hideDailyJournalPanel();
   viewSelector.classList.add("hidden");
   viewButtons.forEach((btn) => {
     btn.disabled = true;
@@ -1409,6 +1889,7 @@ function showJournalArchive(date) {
     moveCompletedBtn.disabled = true;
   }
   tagBar.classList.add("hidden");
+  hideDailyJournalPanel();
   viewSelector.classList.add("hidden");
   viewButtons.forEach((btn) => {
     btn.disabled = true;
@@ -1614,6 +2095,7 @@ async function createJournalEntry(content) {
   });
   journalEntries = [entry].concat(journalEntries || []);
   renderJournal();
+  refreshDailyJournalPanelIfActive();
   try {
     await refreshJournalSummary();
   } catch (err) {
@@ -1627,11 +2109,13 @@ async function updateJournalEntry(id, content) {
     body: JSON.stringify({ id, content }),
   });
   await loadJournalEntries();
+  refreshDailyJournalPanelIfActive();
 }
 
 async function deleteJournalEntry(id) {
   await apiFetch(`/journal?id=${encodeURIComponent(id)}`, { method: "DELETE" });
   await loadJournalEntries();
+  refreshDailyJournalPanelIfActive();
   try {
     await refreshJournalSummary();
   } catch (err) {
@@ -1645,6 +2129,7 @@ async function archiveJournalEntry(id) {
     body: JSON.stringify({ id }),
   });
   await loadJournalEntries();
+  refreshDailyJournalPanelIfActive();
 }
 
 function getDefaultView(value) {
@@ -1985,6 +2470,7 @@ function showSettings() {
   currentSheetPath = "";
   notePath.textContent = "Settings";
   tagBar.classList.add("hidden");
+  hideDailyJournalPanel();
   viewSelector.classList.add("hidden");
   viewButtons.forEach((btn) => {
     btn.disabled = true;
@@ -2115,6 +2601,27 @@ function openTagGroup(tag) {
     tagWrapper.classList.remove("collapsed");
   }
   tagRow.scrollIntoView({ block: "center" });
+}
+
+function openMentionGroup(mention) {
+  if (!mention) {
+    return;
+  }
+  const mentionRoot = treeContainer.querySelector(".tree-node.mention-root");
+  if (mentionRoot) {
+    mentionRoot.classList.remove("collapsed");
+  }
+  const mentionRow = treeContainer.querySelector(
+    `.node-row[data-type="mention"][data-mention="${CSS.escape(mention)}"]`
+  );
+  if (!mentionRow) {
+    return;
+  }
+  const mentionWrapper = mentionRow.closest(".tree-node.mention-group");
+  if (mentionWrapper) {
+    mentionWrapper.classList.remove("collapsed");
+  }
+  mentionRow.scrollIntoView({ block: "center" });
 }
 
 function applyHighlighting() {
@@ -2902,6 +3409,38 @@ function buildTaskGroup(name, tasks, depth) {
   return wrapper;
 }
 
+function buildTaskFiltersNode(filters, depth) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "tree-node folder task-filters-root";
+
+  const row = document.createElement("div");
+  row.className = "node-row";
+  row.style.paddingLeft = `${12 + depth * 12}px`;
+  row.dataset.path = "__task_filters__";
+  row.dataset.type = "task-filters-root";
+
+  const caret = document.createElement("span");
+  caret.className = "folder-icon";
+  row.appendChild(caret);
+
+  const label = document.createElement("span");
+  label.className = "node-name";
+  const count = Array.isArray(filters) ? filters.length : 0;
+  label.textContent = formatCountLabel("Task Filters", count);
+  row.appendChild(label);
+
+  wrapper.appendChild(row);
+
+  row.addEventListener("click", () => {
+    hideContextMenu();
+    currentActivePath = "__task_filters__";
+    setActiveNode(currentActivePath);
+    showTaskFiltersView(currentTaskFilterId);
+  });
+
+  return wrapper;
+}
+
 function formatProjectLabel(name) {
   if (!name) {
     return "";
@@ -2916,7 +3455,24 @@ function formatProjectLabel(name) {
     .join(" ");
 }
 
-function buildTasksRoot(tasks) {
+function buildMentionMap(tasks) {
+  const mentionMap = new Map();
+  (tasks || []).forEach((task) => {
+    (task.mentions || []).forEach((mention) => {
+      const key = String(mention || "").trim();
+      if (!key) {
+        return;
+      }
+      if (!mentionMap.has(key)) {
+        mentionMap.set(key, []);
+      }
+      mentionMap.get(key).push(task);
+    });
+  });
+  return mentionMap;
+}
+
+function buildTasksRoot(tasks, taskFilters) {
   const wrapper = document.createElement("div");
   wrapper.className = "tree-node folder task-root";
   wrapper.classList.add("collapsed");
@@ -2969,6 +3525,7 @@ function buildTasksRoot(tasks) {
 
   children.appendChild(buildTaskGroup("Today", todayTasks, 1));
   children.appendChild(buildTaskGroup("Someday", somedayTasks, 1));
+  children.appendChild(buildTaskFiltersNode((taskFilters && taskFilters.filters) || [], 1));
 
   projectNames.forEach((project) => {
     children.appendChild(buildTaskGroup(project, projectMap.get(project) || [], 1));
@@ -3209,6 +3766,12 @@ function taskGroupSummary(tasks, label) {
 function restoreTaskSelection(previousActivePath, tasks) {
   if (!showTasksRoot || !previousActivePath) {
     return false;
+  }
+  if (previousActivePath === "__task_filters__") {
+    currentActivePath = "__task_filters__";
+    setActiveNode(currentActivePath);
+    showTaskFiltersView(currentTaskFilterId);
+    return true;
   }
   if (previousActivePath === "__tasks__") {
     const { activeTasks, projectMap } = splitTasksByProject(tasks || []);
@@ -4007,7 +4570,7 @@ function buildDailyNode(node) {
   return wrapper;
 }
 
-function renderTree(tree, tags, mentions, tasks) {
+function renderTree(tree, tags, mentions, tasks, taskFilters) {
   treeContainer.innerHTML = "";
   if (tree) {
     treeContainer.appendChild(buildInboxNode());
@@ -4024,7 +4587,7 @@ function renderTree(tree, tags, mentions, tasks) {
     treeContainer.appendChild(sheetsRoot);
   }
   if (showTasksRoot && tasks) {
-    const tasksRoot = buildTasksRoot(tasks);
+    const tasksRoot = buildTasksRoot(tasks, taskFilters);
     treeContainer.appendChild(tasksRoot);
   }
   treeContainer.appendChild(buildJournalNode(journalSummary));
@@ -4110,9 +4673,11 @@ function restoreExpandedTreePaths(paths) {
 }
 
 function refreshTasksTree() {
-  renderTree(currentTree, currentTags, currentMentions, currentTasks);
+  renderTree(currentTree, currentTags, currentMentions, currentTasks, currentTaskFilters);
   if (currentMode === "tasks") {
     restoreTaskSelection(currentActivePath, currentTasks);
+  } else if (currentMode === "task-filters") {
+    showTaskFiltersView(currentTaskFilterId);
   }
 }
 
@@ -4121,18 +4686,21 @@ function refreshTasksAndTagsPreserveView(options = {}) {
   const activePathSnapshot = currentActivePath;
   const expandedPaths = getExpandedTreePaths();
   const { suppressNotice = false } = options;
-  return Promise.all([apiFetch("/tasks"), apiFetch("/tags"), apiFetch("/mentions")])
-    .then(([tasksResponse, tags, mentions]) => {
+  return Promise.all([apiFetch("/tasks"), apiFetch("/tags"), apiFetch("/mentions"), apiFetch("/tasks/filters")])
+    .then(([tasksResponse, tags, mentions, filtersResponse]) => {
       if (tasksResponse.notice && !suppressNotice) {
         alert(tasksResponse.notice);
       }
       currentTags = tags || [];
       currentMentions = mentions || [];
       currentTasks = tasksResponse.tasks || [];
-      renderTree(currentTree, currentTags, currentMentions, currentTasks);
+      currentTaskFilters = filtersResponse && filtersResponse.filters ? filtersResponse.filters : { version: 1, filters: [] };
+      renderTree(currentTree, currentTags, currentMentions, currentTasks, currentTaskFilters);
       restoreExpandedTreePaths(expandedPaths);
       if (modeSnapshot === "tasks") {
         restoreTaskSelection(activePathSnapshot, currentTasks);
+      } else if (modeSnapshot === "task-filters") {
+        showTaskFiltersView(currentTaskFilterId);
       } else if (activePathSnapshot) {
         setActiveNode(activePathSnapshot);
       }
@@ -4156,6 +4724,10 @@ async function refreshTreePreserveMode() {
     showSettings();
   } else if (modeSnapshot === "journal") {
     showJournal();
+  } else if (modeSnapshot === "task-filters") {
+    currentActivePath = "__task_filters__";
+    setActiveNode(currentActivePath);
+    showTaskFiltersView(currentTaskFilterId);
   } else if (modeSnapshot === "journal-archive" && activePathSnapshot.startsWith(`${journalRootPath}:`)) {
     const date = activePathSnapshot.slice(`${journalRootPath}:`.length);
     if (date) {
@@ -4205,6 +4777,7 @@ function setActiveNode(path) {
       row.dataset.type === "tag-root" ||
       row.dataset.type === "mention-root" ||
       row.dataset.type === "task-group" ||
+      row.dataset.type === "task-filters-root" ||
       row.dataset.type === "mention" ||
       row.dataset.type === "folder";
     row.classList.toggle("active", isSelectable && row.dataset.path === path);
@@ -4253,7 +4826,7 @@ async function loadTree(path = "") {
     const previousActivePath = currentActivePath;
     const expandedPaths = getExpandedTreePaths();
     const query = path ? `?path=${encodeURIComponent(path)}` : "";
-    const [tree, sheetsTree, tags, mentions, tasksResponse, settingsResponse, archiveResponse] = await Promise.all([
+    const [tree, sheetsTree, tags, mentions, tasksResponse, settingsResponse, archiveResponse, filtersResponse] = await Promise.all([
       apiFetch(`/tree${query}`),
       apiFetch("/sheets/tree"),
       apiFetch("/tags"),
@@ -4261,6 +4834,7 @@ async function loadTree(path = "") {
       apiFetch("/tasks"),
       apiFetch("/settings"),
       apiFetch("/journal/archives"),
+      apiFetch("/tasks/filters"),
     ]);
     setOfflineState(false);
     if (tasksResponse.notice) {
@@ -4269,6 +4843,9 @@ async function loadTree(path = "") {
     if (settingsResponse.notice && !settingsLoaded) {
       alert(settingsResponse.notice);
     }
+    if (filtersResponse.notice) {
+      alert(filtersResponse.notice);
+    }
     settingsLoaded = true;
     applySettings(settingsResponse.settings || {});
     currentTree = tree;
@@ -4276,13 +4853,14 @@ async function loadTree(path = "") {
     currentTags = tags;
     currentMentions = mentions || [];
     currentTasks = tasksResponse.tasks || [];
+    currentTaskFilters = filtersResponse && filtersResponse.filters ? filtersResponse.filters : { version: 1, filters: [] };
     journalSummary = {
       archives: archiveResponse.archives || [],
       totalCount: Number.isFinite(archiveResponse.totalCount)
         ? archiveResponse.totalCount
         : (archiveResponse.archives || []).length,
     };
-    renderTree(currentTree, currentTags, currentMentions, tasksResponse.tasks || []);
+    renderTree(currentTree, currentTags, currentMentions, tasksResponse.tasks || [], currentTaskFilters);
     if (restoreTaskSelection(previousActivePath, currentTasks)) {
       restoreExpandedTreePaths(expandedPaths);
       return;
@@ -4393,7 +4971,8 @@ async function openNote(path) {
     });
     setView(getPreferredView(), true);
     applyHighlighting();
-    renderTagBar(extractTags(data.content));
+    renderTagBarFromContent(data.content);
+    updateDailyJournalPanel(data.path, { silent: true });
     isDirty = false;
     saveBtn.disabled = false;
     if (moveCompletedBtn) {
@@ -4487,6 +5066,52 @@ function openScratchDialog() {
   scratchDialog.classList.remove("hidden");
   setTimeout(() => scratchDialogText.focus(), 0);
   loadScratchNote().catch((err) => alert(err.message));
+}
+
+function openTaskFiltersModal() {
+  if (!taskFiltersModal || !taskFiltersText) {
+    return;
+  }
+  hideContextMenu();
+  lastActiveElement = document.activeElement;
+  taskFiltersText.value = JSON.stringify(currentTaskFilters || { version: 1, filters: [] }, null, 2);
+  taskFiltersModal.classList.remove("hidden");
+  setTimeout(() => taskFiltersText.focus(), 0);
+}
+
+function closeTaskFiltersModal() {
+  if (!taskFiltersModal) {
+    return;
+  }
+  taskFiltersModal.classList.add("hidden");
+  if (lastActiveElement && typeof lastActiveElement.focus === "function") {
+    lastActiveElement.focus();
+  }
+  lastActiveElement = null;
+}
+
+async function saveTaskFiltersFromModal() {
+  if (!taskFiltersText) {
+    return;
+  }
+  let payload;
+  try {
+    payload = JSON.parse(taskFiltersText.value || "");
+  } catch (err) {
+    alert("Invalid JSON");
+    return;
+  }
+  try {
+    const response = await apiFetch("/tasks/filters", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    currentTaskFilters = response && response.filters ? response.filters : payload;
+    closeTaskFiltersModal();
+    refreshTasksTree();
+  } catch (err) {
+    alert(err.message);
+  }
 }
 
 async function closeScratchDialog() {
@@ -4590,7 +5215,7 @@ async function appendToInbox(text) {
   if (currentNotePath === inboxNotePath) {
     editor.value = nextContent;
     updatePreviewFromMarkdown(nextContent);
-    renderTagBar(extractTags(nextContent));
+    renderTagBarFromContent(nextContent);
     isDirty = false;
     saveBtn.disabled = false;
   }
@@ -4668,7 +5293,7 @@ function openAsset(path) {
     moveCompletedBtn.disabled = true;
   }
   isDirty = false;
-  renderTagBar([]);
+  renderTagBar([], []);
   expandToPath(path);
   setActiveNode(currentActivePath);
 }
@@ -4726,7 +5351,7 @@ function openPdf(path) {
     moveCompletedBtn.disabled = true;
   }
   isDirty = false;
-  renderTagBar([]);
+  renderTagBar([], []);
   expandToPath(path);
   setActiveNode(currentActivePath);
 }
@@ -4848,7 +5473,7 @@ async function openCsv(path) {
       moveCompletedBtn.disabled = true;
     }
     isDirty = false;
-    renderTagBar([]);
+    renderTagBar([], []);
     expandToPath(path);
     setActiveNode(currentActivePath);
   } catch (err) {
@@ -5581,7 +6206,7 @@ function moveCompletedTasksForCurrentNote() {
   }
   editor.value = result.text;
   updatePreviewFromMarkdown(result.text);
-  renderTagBar(extractTags(result.text));
+  renderTagBarFromContent(result.text);
   isDirty = true;
   saveBtn.disabled = false;
 }
@@ -5763,7 +6388,7 @@ async function deleteNote(path) {
         moveCompletedBtn.disabled = true;
       }
       isDirty = false;
-      renderTagBar([]);
+      renderTagBar([], []);
     }
     await loadTree();
   } catch (err) {
@@ -6067,7 +6692,7 @@ editor.addEventListener("input", () => {
   }
   isDirty = true;
   updatePreviewFromMarkdown(editor.value);
-  renderTagBar(extractTags(editor.value));
+  renderTagBarFromContent(editor.value);
   saveBtn.disabled = !currentNotePath;
   scheduleNoteSave();
 });
@@ -6205,7 +6830,7 @@ function appendTagToNote(tag) {
   isDirty = true;
   updatePreviewFromMarkdown(editor.value);
   applyHighlighting();
-  renderTagBar(extractTags(editor.value));
+  renderTagBarFromContent(editor.value);
   saveBtn.disabled = !currentNotePath;
 }
 
@@ -6355,6 +6980,13 @@ tagAddBtn.addEventListener("click", () => {
   appendTagToNote(input);
 });
 
+if (dailyJournalNewBtn) {
+  dailyJournalNewBtn.addEventListener("click", () => {
+    const dateKey = getDailyDateFromPath(currentNotePath);
+    openJournalForDate(dateKey);
+  });
+}
+
 window.addEventListener("keydown", (event) => {
   if (!(event.ctrlKey && event.altKey)) {
     return;
@@ -6483,6 +7115,12 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && taskFiltersModal && !taskFiltersModal.classList.contains("hidden")) {
+    closeTaskFiltersModal();
+  }
+});
+
 if (inboxDialogBackdrop) {
   inboxDialogBackdrop.addEventListener("click", () => closeInboxDialog());
 }
@@ -6577,6 +7215,30 @@ if (scratchDialogText) {
   });
 }
 
+if (taskFiltersBackdrop) {
+  taskFiltersBackdrop.addEventListener("click", () => {
+    closeTaskFiltersModal();
+  });
+}
+
+if (taskFiltersClose) {
+  taskFiltersClose.addEventListener("click", () => {
+    closeTaskFiltersModal();
+  });
+}
+
+if (taskFiltersCancel) {
+  taskFiltersCancel.addEventListener("click", () => {
+    closeTaskFiltersModal();
+  });
+}
+
+if (taskFiltersSave) {
+  taskFiltersSave.addEventListener("click", async () => {
+    await saveTaskFiltersFromModal();
+  });
+}
+
 if (commandBackdrop) {
   commandBackdrop.addEventListener("click", () => closeCommandPalette());
 }
@@ -6656,6 +7318,7 @@ if (journalArchiveAll) {
     try {
       await apiFetch("/journal/archive-all", { method: "POST" });
       await loadJournalEntries();
+      refreshDailyJournalPanelIfActive();
       await refreshTreePreserveMode();
     } catch (err) {
       alert(err.message);

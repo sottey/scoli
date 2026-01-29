@@ -47,6 +47,8 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 	r.Delete("/folders", s.handleDeleteFolder)
 	r.Get("/tasks", s.handleTasksList)
 	r.Get("/tasks/for-note", s.handleTasksForNote)
+	r.Get("/tasks/filters", s.handleTaskFiltersGet)
+	r.Put("/tasks/filters", s.handleTaskFiltersUpdate)
 	r.Patch("/tasks/toggle", s.handleTasksToggle)
 	r.Patch("/tasks/archive", s.handleTasksArchive)
 	r.Get("/sheets/tree", s.handleSheetsTree)

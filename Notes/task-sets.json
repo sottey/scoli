@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "filters": [
+    {
+      "id": "work-open-this-week",
+      "name": "Open Work Tasks (This Week)",
+      "tags": [],
+      "mentions": [],
+      "projects": ["work"],
+      "due": { "from": "today", "to": "+7d" },
+      "priority": null,
+      "completed": false,
+      "text": "",
+      "pathPrefix": ""
+    },
+    {
+      "id": "home-open-this-week",
+      "name": "Open Home Tasks (This Week)",
+      "tags": [],
+      "mentions": [],
+      "projects": ["home"],
+      "due": { "from": "today", "to": "+7d" },
+      "priority": null,
+      "completed": false,
+      "text": "",
+      "pathPrefix": ""
+    }
+  ]
+}

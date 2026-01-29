@@ -262,8 +262,10 @@ Conditionals:
 
 - Split view (edit/preview) with a draggable divider
 - Tag pills in the preview bar open filtered tag views
-- Tasks view includes Today, Someday, project groups, No Project, Completed, and All
+- Tasks view includes Today, Someday, Task Filters, project groups, No Project, Completed, and All
+- Task Filters are stored in `Notes/task-sets.json` and selectable from the Task Filters view
 - Daily notes open from the header date pill or the date picker
+- Daily notes show a read-only journal panel with links to edit entries in Journal
 - Notes auto-save shortly after changes (debounced)
 
 ## Settings
