@@ -1,13 +1,26 @@
 ## TODO
-- [ ] Template manager UI: templates are powerful but hidden; add a simple “Templates” view or a quick editor that lists all default template files.
-- [ ] CSV import/export polish for Sheets: round out with column type inference and per-sheet settings (freeze header, default column widths).
-- [ ] Search improvements: show snippet matches with highlighted terms and a “search in folder” option.
+
+
 
 ## MAYBE SOMEDAY
+- [ ] Template manager UI: templates are powerful but hidden; add a simple “Templates” view or a quick editor that lists all default template files.
+- [ ] Search improvements: show snippet matches with highlighted terms and a “search in folder” option.
+- [ ] CSV import/export polish for Sheets: round out with column type inference and per-sheet settings (freeze header, default column widths).
 - [ ] Flash cards Node - Ability to set texst for a "front" and a "back" and the ability to run through a deck
 - [ ] AI (MCP)
-- [ ] Meeting Transcription Node - Record mic and computer audio, storing the audio. Also, during recording, there is a text pane which the user can type into. This typing is stored with time stamps so if the recording is replayed, the notes show real time when notes were written (in relation to the audio)
+- [ ] Meeting Transcription Node - Record mic and computer audio, storing the audio. Also, during recording, there is a text pane which the user can type 
+      into. This typing is stored with time stamps so if the recording is replayed, the notes show real time when notes were written (in relation 
+      to the audio)
 - [ ] Canvas - Node that allows the creation of open canvases for drawing.
+- [ ] Local graph view: interactive note graph with filters (tags, mentions, folders) and quick jump/preview; lightweight, no external services.
+- [ ] Backlinks + references panel: show notes that link to the current note, plus an “unlinked mentions” list with one‑click insert.
+- [ ] Version history per note: auto-snapshots on save with diff view and restore; store in a hidden .history folder alongside notes.
+- [ ] Daily Pulse: One click turns today’s Daily note into a live dashboard: Today tasks + overdue, quick journal entry box, tag pills for focus, and a 
+        “Start Session” timer that writes a time‑block into the note. Saves the snapshot as a section in the Daily note so it’s a record, not just a view.
+- [ ] Project Flight Path: Open a project group → it builds a single “flight plan” page: top tasks, related notes, recent journal entries mentioning the 
+        project, and filtered sheets in one place. A pinned view you can reopen later, auto‑kept fresh.
+- [ ] Capture → Triage → File: A guided flow that takes scratch pad content, quick notes, and new journal entries and funnels them into Inbox. Then a 
+        single “Triage” view lets you assign a folder, tags, due dates, and project in batch. Feels like a cohesive command center instead of separate tools.
 
 
 ## COMPLETED
