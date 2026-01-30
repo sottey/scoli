@@ -17,6 +17,7 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 		notesDir: notesDir,
 		logger:   baseLogger.With("component", "api"),
 	}
+	s.startEmailSchedulers()
 
 	r := chi.NewRouter()
 	r.Get("/health", s.handleHealth)
@@ -40,6 +41,9 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 	r.Get("/mentions", s.handleMentions)
 	r.Get("/settings", s.handleSettingsGet)
 	r.Patch("/settings", s.handleSettingsUpdate)
+	r.Get("/email/settings", s.handleEmailSettingsGet)
+	r.Patch("/email/settings", s.handleEmailSettingsUpdate)
+	r.Post("/email/test", s.handleEmailTest)
 	r.Post("/icons/root", s.handleRootIconUpload)
 	r.Delete("/icons/root", s.handleRootIconReset)
 	r.Post("/folders", s.handleCreateFolder)

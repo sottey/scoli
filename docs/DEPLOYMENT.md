@@ -64,3 +64,11 @@ go run ./cmd/scoli serve --notes-dir ./Notes --port 8080
 - `--notes-dir` sets where notes are stored (defaults to `./Notes`).
 - `--seed-dir` points to seed notes copied into an empty notes directory.
 - `--port` sets the HTTP port (defaults to 8080).
+
+## Email notifications
+
+Email notifications are configured in the web UI (Settings → Email) and stored
+in `Notes/email-settings.json`. Templates are created under `Notes/email/`.
+
+If you mount a notes volume in Docker, make sure it persists so email settings
+and templates are retained between container restarts.

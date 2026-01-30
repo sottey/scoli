@@ -79,6 +79,38 @@ to a JSON file relative to the notes directory, for example `commands.json`:
 ]
 ```
 
+## Email notifications
+
+Scoli can send a daily digest and task-due notifications via SMTP (for example,
+Gmail with an app password).
+
+Configure in Settings → Email:
+
+- Enable notifications
+- SMTP host/port/username/app password
+- From/To address
+- Digest time and Due time
+- Send Test Email to verify the setup
+
+Settings are stored in `Notes/email-settings.json` (created on first access).
+Templates live under `Notes/email/`:
+
+- `email/digest.template`
+- `email/due.template`
+
+Both templates support simple tokens:
+
+- `{{date}}`
+- `{{tasks_overdue}}`
+- `{{tasks_today}}`
+- `{{tasks_upcoming}}`
+- `{{tasks_by_project}}`
+- `{{notes_summary}}`
+- `{{completed_yesterday}}`
+
+To keep secrets out of git, add `Notes/email-settings.json` to your ignore
+rules if your notes directory is tracked.
+
 ## UI Authentication
 
 If you expose the web UI publicly, set a password to gate the UI routes:

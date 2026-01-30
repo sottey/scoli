@@ -169,6 +169,65 @@
                 </label>
               </div>
             </div>
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <h3 class="settings-section-title">Email</h3>
+                <p class="settings-section-desc">Daily digest and due task notifications.</p>
+              </div>
+              <div class="settings-grid">
+                <label class="settings-row">
+                  <input id="email-enabled" type="checkbox" />
+                  <span>Enable Email Notifications</span>
+                </label>
+                <label class="settings-row">
+                  <input id="email-digest-enabled" type="checkbox" />
+                  <span>Daily Digest</span>
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">Digest Time</span>
+                  <input id="email-digest-time" class="settings-input" type="time" />
+                </label>
+                <label class="settings-row">
+                  <input id="email-due-enabled" type="checkbox" />
+                  <span>Task Due Notification</span>
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">Due Time</span>
+                  <input id="email-due-time" class="settings-input" type="time" />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">SMTP Host</span>
+                  <input id="email-smtp-host" class="settings-input" type="text" placeholder="smtp.gmail.com" />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">SMTP Port</span>
+                  <input id="email-smtp-port" class="settings-input" type="number" min="1" max="65535" />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">SMTP Username</span>
+                  <input id="email-smtp-username" class="settings-input" type="email" placeholder="you@gmail.com" />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">SMTP App Password</span>
+                  <input id="email-smtp-password" class="settings-input" type="password" placeholder="App password" />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">From Address</span>
+                  <input id="email-smtp-from" class="settings-input" type="email" placeholder="you@gmail.com" />
+                </label>
+                <label class="settings-field">
+                  <span class="settings-label">To Address</span>
+                  <input id="email-smtp-to" class="settings-input" type="email" placeholder="you@gmail.com" />
+                </label>
+                <label class="settings-row">
+                  <input id="email-smtp-tls" type="checkbox" />
+                  <span>Use TLS (STARTTLS/SSL)</span>
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button id="email-test-btn" class="primary" type="button">Send Test Email</button>
+              </div>
+            </div>
             <div class="settings-section settings-meta">
               <div class="settings-meta-row">
                 <div id="app-version" class="app-version"></div>

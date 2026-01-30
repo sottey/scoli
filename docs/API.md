@@ -136,6 +136,41 @@ data can include trailing empty rows.
 }
 ```
 
+### EmailSettings
+
+```json
+{
+  "version": 1,
+  "enabled": false,
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "you@gmail.com",
+    "password": "app-password",
+    "from": "you@gmail.com",
+    "to": "you@gmail.com",
+    "useTLS": true
+  },
+  "digest": {
+    "enabled": true,
+    "time": "08:00"
+  },
+  "due": {
+    "enabled": true,
+    "time": "07:30",
+    "windowDays": 0,
+    "includeOverdue": true
+  },
+  "templates": {
+    "digest": "email/digest.template",
+    "due": "email/due.template"
+  }
+}
+```
+
+Email settings are stored in `Notes/email-settings.json`, with templates under
+`Notes/email/`.
+
 ## Templates
 
 If a folder contains `default.template`, new notes created in that folder start
@@ -901,6 +936,69 @@ Body (any subset of fields):
   "notesSortOrder": "desc",
   "externalCommandsPath": "commands.json"
 }
+```
+
+### Email settings
+
+#### Read
+
+`GET /email/settings`
+
+Response:
+
+```json
+{
+  "settings": {
+    "version": 1,
+    "enabled": false,
+    "smtp": {
+      "host": "smtp.gmail.com",
+      "port": 587,
+      "username": "you@gmail.com",
+      "password": "app-password",
+      "from": "you@gmail.com",
+      "to": "you@gmail.com",
+      "useTLS": true
+    },
+    "digest": { "enabled": true, "time": "08:00" },
+    "due": { "enabled": true, "time": "07:30", "windowDays": 0, "includeOverdue": true },
+    "templates": { "digest": "email/digest.template", "due": "email/due.template" }
+  },
+  "notice": "Created email-settings.json"
+}
+```
+
+#### Update
+
+`PATCH /email/settings`
+
+Body (any subset of fields):
+
+```json
+{
+  "enabled": true,
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "you@gmail.com",
+    "password": "app-password",
+    "from": "you@gmail.com",
+    "to": "you@gmail.com",
+    "useTLS": true
+  },
+  "digest": { "enabled": true, "time": "08:00" },
+  "due": { "enabled": true, "time": "07:30", "windowDays": 0, "includeOverdue": true }
+}
+```
+
+#### Send test email
+
+`POST /email/test`
+
+Response:
+
+```json
+{ "status": "sent" }
 ```
 
 Response:

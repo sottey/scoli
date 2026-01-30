@@ -56,6 +56,19 @@ const settingsDefaultFolder = document.getElementById("settings-default-folder")
 const settingsShowTemplates = document.getElementById("settings-show-templates");
 const settingsNotesSortBy = document.getElementById("settings-notes-sort-by");
 const settingsNotesSortOrder = document.getElementById("settings-notes-sort-order");
+const emailEnabled = document.getElementById("email-enabled");
+const emailDigestEnabled = document.getElementById("email-digest-enabled");
+const emailDigestTime = document.getElementById("email-digest-time");
+const emailDueEnabled = document.getElementById("email-due-enabled");
+const emailDueTime = document.getElementById("email-due-time");
+const emailSmtpHost = document.getElementById("email-smtp-host");
+const emailSmtpPort = document.getElementById("email-smtp-port");
+const emailSmtpUsername = document.getElementById("email-smtp-username");
+const emailSmtpPassword = document.getElementById("email-smtp-password");
+const emailSmtpFrom = document.getElementById("email-smtp-from");
+const emailSmtpTo = document.getElementById("email-smtp-to");
+const emailSmtpTls = document.getElementById("email-smtp-tls");
+const emailTestBtn = document.getElementById("email-test-btn");
 const scratchBtn = document.getElementById("scratch-btn");
 const inboxDialog = document.getElementById("inbox-dialog");
 const inboxDialogText = document.getElementById("inbox-dialog-text");
@@ -114,7 +127,9 @@ let sheetDirty = false;
 let sheetInstance = null;
 let lastNoteView = "preview";
 let currentSettings = { darkMode: false };
+let currentEmailSettings = null;
 let settingsLoaded = false;
+let emailSettingsLoaded = false;
 let noteSaveTimer = null;
 let noteSaveInFlight = false;
 let noteSaveQueued = false;
@@ -2463,6 +2478,85 @@ function applySettings(settings) {
   applySidebarWidth(currentSettings.sidebarWidth);
 }
 
+function applyEmailSettings(settings) {
+  const smtp = settings.smtp || {};
+  const digest = settings.digest || {};
+  const due = settings.due || {};
+  currentEmailSettings = {
+    enabled: !!settings.enabled,
+    smtp: {
+      host: smtp.host || "smtp.gmail.com",
+      port: Number(smtp.port) || 587,
+      username: smtp.username || "",
+      password: smtp.password || "",
+      from: smtp.from || "",
+      to: smtp.to || "",
+      useTLS: smtp.useTLS !== false,
+    },
+    digest: {
+      enabled: digest.enabled !== false,
+      time: digest.time || "08:00",
+    },
+    due: {
+      enabled: due.enabled !== false,
+      time: due.time || "07:30",
+    },
+    templates: settings.templates || {},
+  };
+
+  if (emailEnabled) {
+    emailEnabled.checked = currentEmailSettings.enabled;
+  }
+  if (emailDigestEnabled) {
+    emailDigestEnabled.checked = currentEmailSettings.digest.enabled;
+  }
+  if (emailDigestTime) {
+    emailDigestTime.value = currentEmailSettings.digest.time;
+  }
+  if (emailDueEnabled) {
+    emailDueEnabled.checked = currentEmailSettings.due.enabled;
+  }
+  if (emailDueTime) {
+    emailDueTime.value = currentEmailSettings.due.time;
+  }
+  if (emailSmtpHost) {
+    emailSmtpHost.value = currentEmailSettings.smtp.host;
+  }
+  if (emailSmtpPort) {
+    emailSmtpPort.value = currentEmailSettings.smtp.port;
+  }
+  if (emailSmtpUsername) {
+    emailSmtpUsername.value = currentEmailSettings.smtp.username;
+  }
+  if (emailSmtpPassword) {
+    emailSmtpPassword.value = "";
+  }
+  if (emailSmtpFrom) {
+    emailSmtpFrom.value = currentEmailSettings.smtp.from;
+  }
+  if (emailSmtpTo) {
+    emailSmtpTo.value = currentEmailSettings.smtp.to;
+  }
+  if (emailSmtpTls) {
+    emailSmtpTls.checked = currentEmailSettings.smtp.useTLS;
+  }
+}
+
+async function loadEmailSettings() {
+  if (emailSettingsLoaded) {
+    return;
+  }
+  if (!emailEnabled || !emailDigestEnabled || !emailDigestTime || !emailDueEnabled || !emailDueTime) {
+    return;
+  }
+  const response = await apiFetch("/email/settings");
+  if (response.notice) {
+    alert(response.notice);
+  }
+  emailSettingsLoaded = true;
+  applyEmailSettings(response.settings || {});
+}
+
 function showSettings() {
   currentMode = "settings";
   setPreviewEditable(false);
@@ -2519,6 +2613,9 @@ function showSettings() {
   if (settingsNotesSortOrder) {
     settingsNotesSortOrder.value = currentSettings.notesSortOrder || "asc";
   }
+  loadEmailSettings().catch((err) => {
+    console.warn("Unable to load email settings", err);
+  });
 }
 
 async function saveSettings() {
@@ -2544,11 +2641,17 @@ async function saveSettings() {
       notesSortBy: settingsNotesSortBy.value,
       notesSortOrder: settingsNotesSortOrder.value,
     };
-    const updated = await apiFetch("/settings", {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
+    const [updated, emailUpdated] = await Promise.all([
+      apiFetch("/settings", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      }),
+      saveEmailSettings(),
+    ]);
     applySettings(updated);
+    if (emailUpdated) {
+      applyEmailSettings(emailUpdated);
+    }
     await refreshTreePreserveMode();
     isDirty = false;
     saveBtn.textContent = "Save";
@@ -2558,6 +2661,63 @@ async function saveSettings() {
     saveBtn.disabled = false;
     alert(err.message);
   }
+}
+
+async function saveEmailSettings() {
+  if (
+    !emailEnabled ||
+    !emailDigestEnabled ||
+    !emailDigestTime ||
+    !emailDueEnabled ||
+    !emailDueTime ||
+    !emailSmtpHost ||
+    !emailSmtpPort ||
+    !emailSmtpUsername ||
+    !emailSmtpPassword ||
+    !emailSmtpFrom ||
+    !emailSmtpTo ||
+    !emailSmtpTls
+  ) {
+    return null;
+  }
+
+  const passwordValue = emailSmtpPassword.value.trim();
+  const portValue = emailSmtpPort.value.trim();
+  const smtpPayload = {
+    host: emailSmtpHost.value.trim(),
+    username: emailSmtpUsername.value.trim(),
+    from: emailSmtpFrom.value.trim(),
+    to: emailSmtpTo.value.trim(),
+    useTLS: emailSmtpTls.checked,
+  };
+  if (portValue) {
+    smtpPayload.port = Number(portValue);
+  }
+  if (passwordValue) {
+    smtpPayload.password = passwordValue;
+  }
+
+  const payload = {
+    enabled: emailEnabled.checked,
+    smtp: smtpPayload,
+    digest: {
+      enabled: emailDigestEnabled.checked,
+      time: emailDigestTime.value || "08:00",
+    },
+    due: {
+      enabled: emailDueEnabled.checked,
+      time: emailDueTime.value || "07:30",
+      windowDays: 0,
+      includeOverdue: true,
+    },
+  };
+
+  const updated = await apiFetch("/email/settings", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  emailSettingsLoaded = true;
+  return updated;
 }
 
 async function saveSidebarWidth(width) {
@@ -6678,6 +6838,27 @@ settingsBtn.addEventListener("click", () => {
   showSettings();
 });
 
+if (emailTestBtn) {
+  emailTestBtn.addEventListener("click", async () => {
+    try {
+      emailTestBtn.disabled = true;
+      emailTestBtn.textContent = "Sending...";
+      const updated = await saveEmailSettings();
+      if (updated) {
+        applyEmailSettings(updated);
+      }
+      await apiFetch("/email/test", { method: "POST" });
+      emailTestBtn.textContent = "Send Test Email";
+      emailTestBtn.disabled = false;
+      alert("Test email sent.");
+    } catch (err) {
+      emailTestBtn.textContent = "Send Test Email";
+      emailTestBtn.disabled = false;
+      alert(err.message);
+    }
+  });
+}
+
 if (scratchBtn) {
   scratchBtn.addEventListener("click", () => {
     if (!isScratchDialogOpen()) {
@@ -6732,14 +6913,21 @@ preview.addEventListener("click", (event) => {
   }
 });
 
+function markSettingsDirty() {
+  if (currentMode !== "settings") {
+    return;
+  }
+  isDirty = true;
+  saveBtn.disabled = false;
+}
+
 if (settingsDarkMode) {
   settingsDarkMode.addEventListener("change", () => {
     if (currentMode !== "settings") {
       return;
     }
     applySettings({ ...currentSettings, darkMode: settingsDarkMode.checked });
-    isDirty = true;
-    saveBtn.disabled = false;
+    markSettingsDirty();
   });
 }
 
@@ -6749,8 +6937,7 @@ if (settingsDefaultView) {
       return;
     }
     currentSettings.defaultView = getDefaultView(settingsDefaultView.value);
-    isDirty = true;
-    saveBtn.disabled = false;
+    markSettingsDirty();
   });
 }
 
@@ -6760,8 +6947,7 @@ if (settingsDefaultFolder) {
       return;
     }
     currentSettings.defaultFolder = settingsDefaultFolder.value.trim();
-    isDirty = true;
-    saveBtn.disabled = false;
+    markSettingsDirty();
   });
 }
 
@@ -6771,8 +6957,7 @@ if (settingsShowTemplates) {
       return;
     }
     currentSettings.showTemplates = settingsShowTemplates.checked;
-    isDirty = true;
-    saveBtn.disabled = false;
+    markSettingsDirty();
   });
 }
 
@@ -6782,8 +6967,7 @@ if (settingsNotesSortBy) {
       return;
     }
     currentSettings.notesSortBy = settingsNotesSortBy.value;
-    isDirty = true;
-    saveBtn.disabled = false;
+    markSettingsDirty();
   });
 }
 
@@ -6793,10 +6977,33 @@ if (settingsNotesSortOrder) {
       return;
     }
     currentSettings.notesSortOrder = settingsNotesSortOrder.value;
-    isDirty = true;
-    saveBtn.disabled = false;
+    markSettingsDirty();
   });
 }
+
+const emailInputs = [
+  emailEnabled,
+  emailDigestEnabled,
+  emailDigestTime,
+  emailDueEnabled,
+  emailDueTime,
+  emailSmtpHost,
+  emailSmtpPort,
+  emailSmtpUsername,
+  emailSmtpPassword,
+  emailSmtpFrom,
+  emailSmtpTo,
+  emailSmtpTls,
+];
+emailInputs.forEach((input) => {
+  if (!input) {
+    return;
+  }
+  const eventName = input.type === "text" || input.type === "email" || input.type === "password" || input.type === "number" ? "input" : "change";
+  input.addEventListener(eventName, () => {
+    markSettingsDirty();
+  });
+});
 
 function normalizeTagInput(value) {
   const trimmed = String(value || "").trim();

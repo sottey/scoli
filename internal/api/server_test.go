@@ -178,6 +178,39 @@ func TestTreeShowTemplatesSetting(t *testing.T) {
 	}
 }
 
+func TestTreeHidesEmailFolder(t *testing.T) {
+	dir, router := setupTestRouter(t)
+	writeFile(t, filepath.Join(dir, "email", "digest.template"), "Template")
+
+	settings := []byte(`{"version":2,"showTemplates":true}`)
+	if err := os.WriteFile(filepath.Join(dir, "settings.json"), settings, 0o644); err != nil {
+		t.Fatalf("write settings.json: %v", err)
+	}
+
+	rec := doRequest(t, router, http.MethodGet, "/tree", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var tree TreeNode
+	decodeJSONBody(t, rec, &tree)
+
+	foundEmail := false
+	var visit func(node TreeNode)
+	visit = func(node TreeNode) {
+		if node.Path == "email" {
+			foundEmail = true
+			return
+		}
+		for _, child := range node.Children {
+			visit(child)
+		}
+	}
+	visit(tree)
+	if foundEmail {
+		t.Fatalf("expected email folder to be hidden in tree")
+	}
+}
+
 func TestCreateTemplateNote(t *testing.T) {
 	dir, router := setupTestRouter(t)
 	payload := map[string]string{
@@ -743,6 +776,101 @@ func TestSettingsCRUD(t *testing.T) {
 	}
 	if settingsResp.Settings.DefaultFolder != "Projects" {
 		t.Fatalf("expected defaultFolder Projects from settings")
+	}
+}
+
+func TestReservedRootNames(t *testing.T) {
+	_, router := setupTestRouter(t)
+
+	rec := doRequest(t, router, http.MethodPost, "/folders", map[string]string{
+		"path": "email",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+
+	rec = doRequest(t, router, http.MethodPost, "/notes", map[string]string{
+		"path":    "Inbox",
+		"content": "Hi",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+}
+
+func TestEmailSettingsCRUD(t *testing.T) {
+	dir, router := setupTestRouter(t)
+
+	rec := doRequest(t, router, http.MethodGet, "/email/settings", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var resp EmailSettingsResponse
+	decodeJSONBody(t, rec, &resp)
+	if resp.Notice == "" {
+		t.Fatalf("expected notice when creating email-settings.json")
+	}
+	if resp.Settings.SMTP.Host != "smtp.gmail.com" {
+		t.Fatalf("expected default smtp host, got %q", resp.Settings.SMTP.Host)
+	}
+	if resp.Settings.SMTP.Port != 587 {
+		t.Fatalf("expected default smtp port 587, got %d", resp.Settings.SMTP.Port)
+	}
+	if resp.Settings.Digest.Time != "08:00" {
+		t.Fatalf("expected default digest time 08:00, got %q", resp.Settings.Digest.Time)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "email-settings.json")); err != nil {
+		t.Fatalf("expected email-settings.json to exist")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "email", "digest.template")); err != nil {
+		t.Fatalf("expected email digest template to exist")
+	}
+
+	rec = doRequest(t, router, http.MethodPatch, "/email/settings", map[string]any{
+		"enabled": true,
+		"smtp": map[string]any{
+			"host":     "smtp.gmail.com",
+			"port":     587,
+			"username": "test@example.com",
+			"password": "secret",
+			"from":     "test@example.com",
+			"to":       "test@example.com",
+			"useTLS":   true,
+		},
+		"digest": map[string]any{
+			"enabled": true,
+			"time":    "07:45",
+		},
+		"due": map[string]any{
+			"enabled":        true,
+			"time":           "07:30",
+			"windowDays":     0,
+			"includeOverdue": true,
+		},
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	var updated EmailSettings
+	decodeJSONBody(t, rec, &updated)
+	if !updated.Enabled {
+		t.Fatalf("expected email enabled true")
+	}
+	if updated.Digest.Time != "07:45" {
+		t.Fatalf("expected digest time 07:45, got %q", updated.Digest.Time)
+	}
+
+	rec = doRequest(t, router, http.MethodGet, "/email/settings", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+	resp = EmailSettingsResponse{}
+	decodeJSONBody(t, rec, &resp)
+	if !resp.Settings.Enabled {
+		t.Fatalf("expected enabled true from email settings")
+	}
+	if resp.Settings.Digest.Time != "07:45" {
+		t.Fatalf("expected digest time 07:45 from email settings")
 	}
 }
 

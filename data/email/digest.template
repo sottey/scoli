@@ -1,0 +1,19 @@
+Scoli Daily Digest - {{date}}
+
+Overdue
+{{tasks_overdue}}
+
+Due Today
+{{tasks_today}}
+
+Upcoming
+{{tasks_upcoming}}
+
+Tasks by Project
+{{tasks_by_project}}
+
+Yesterday's Notes
+{{notes_summary}}
+
+Completed Yesterday
+{{completed_yesterday}}

@@ -13,17 +13,20 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 type Server struct {
-	notesDir string
-	logger   *slog.Logger
+	notesDir           string
+	logger             *slog.Logger
+	emailSchedulerOnce sync.Once
 }
 
 var timeNow = time.Now
 
 const inboxNotePath = "Inbox.md"
+const scratchNotePath = "scratch.md"
 const dailyFolderName = "Daily"
 const dailyDateLayout = "2006-01-02"
 const sheetsFolderName = "Sheets"
@@ -213,6 +216,10 @@ func (s *Server) handleCreateNote(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if err := validateReservedRootPath(relPath, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if isDailyPath(relPath) && !isTemplate(relPath) {
 		if _, ok := parseDailyNoteDate(relPath); !ok {
 			writeError(w, http.StatusBadRequest, "daily notes must use YYYY-MM-DD")
@@ -395,6 +402,10 @@ func (s *Server) handleCreateFolder(w http.ResponseWriter, r *http.Request) {
 
 	absPath, relPath, err := s.resolvePath(payload.Path)
 	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := validateReservedRootPath(relPath, true); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -691,6 +702,10 @@ func (s *Server) handleRenameNote(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if err := validateReservedRootPath(relNewPath, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if isDailyPath(relNewPath) && !isTemplate(relNewPath) {
 		if _, ok := parseDailyNoteDate(relNewPath); !ok {
 			writeError(w, http.StatusBadRequest, "daily notes must use YYYY-MM-DD")
@@ -738,6 +753,10 @@ func (s *Server) handleRenameFolder(w http.ResponseWriter, r *http.Request) {
 	}
 	absNewPath, relNewPath, err := s.resolvePath(payload.NewPath)
 	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := validateReservedRootPath(relNewPath, true); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -892,6 +911,9 @@ func (s *Server) buildTree(absPath, relPath string, showTemplates bool, sortBy, 
 	for _, entry := range entries {
 		name := entry.Name()
 		if relPath == "" && entry.IsDir() && strings.EqualFold(name, sheetsFolderName) {
+			continue
+		}
+		if relPath == "" && entry.IsDir() && strings.EqualFold(name, emailTemplatesDir) {
 			continue
 		}
 		childRel := filepath.Join(relPath, name)
@@ -1592,6 +1614,52 @@ func cleanRelPath(input string) (string, error) {
 	}
 
 	return clean, nil
+}
+
+func validateReservedRootPath(relPath string, isFolder bool) error {
+	trimmed := strings.TrimSpace(filepath.ToSlash(relPath))
+	if trimmed == "" {
+		return nil
+	}
+	if strings.Contains(trimmed, "/") {
+		return nil
+	}
+	name := strings.ToLower(trimmed)
+	if isFolder {
+		if isReservedRootFolder(name) {
+			return errors.New("folder name is reserved")
+		}
+		return nil
+	}
+	if isReservedRootFile(name) {
+		return errors.New("file name is reserved")
+	}
+	return nil
+}
+
+func isReservedRootFolder(name string) bool {
+	switch name {
+	case strings.ToLower(dailyFolderName),
+		strings.ToLower(sheetsFolderName),
+		strings.ToLower(journalFolderName),
+		strings.ToLower(emailTemplatesDir):
+		return true
+	default:
+		return false
+	}
+}
+
+func isReservedRootFile(name string) bool {
+	switch name {
+	case strings.ToLower(settingsFileName),
+		strings.ToLower(emailSettingsFileName),
+		strings.ToLower(taskFiltersFileName),
+		strings.ToLower(inboxNotePath),
+		strings.ToLower(scratchNotePath):
+		return true
+	default:
+		return false
+	}
 }
 
 func isDailyPath(relPath string) bool {

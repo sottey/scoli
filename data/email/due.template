@@ -1,0 +1,7 @@
+Scoli Tasks Due - {{date}}
+
+Overdue
+{{tasks_overdue}}
+
+Due Today
+{{tasks_today}}
