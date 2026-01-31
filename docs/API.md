@@ -452,7 +452,7 @@ Returns the raw file (used for images, PDFs, CSVs, etc.).
 Uploads a root node icon via `multipart/form-data` with a file field named
 `icon`. Allowed extensions: `.png`, `.svg`, `.ico`. Max size: 1MB.
 
-Valid root keys: `notes`, `daily`, `tasks`, `tags`, `journal`, `inbox`.
+Valid root keys: `notes`, `daily`, `tasks`, `tags`, `journal`, `inbox`, `ai`, `sheets`.
 
 Response:
 

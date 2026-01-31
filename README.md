@@ -298,6 +298,7 @@ Conditionals:
 - Task Filters are stored in `Notes/task-sets.json` and selectable from the Task Filters view
 - Daily notes open from the header date pill or the date picker
 - Daily notes show a read-only journal panel with links to edit entries in Journal
+- AI view (when enabled) provides chat over all notes with source links
 - Notes auto-save shortly after changes (debounced)
 
 ## Settings
@@ -310,7 +311,16 @@ fields:
 - `sidebarWidth`
 - `defaultFolder`
 - `showTemplates`
+- `showAiNode`
 - `rootIcons` (map of root node keys to icon paths)
+
+## AI
+
+AI settings live in `Notes/.ai/ai-settings.json` (created on server startup).
+Set `apiKey` there to enable AI chat. The AI index and chat history are also
+stored under `Notes/.ai/`.
+To keep secrets out of git, add `Notes/.ai/ai-settings.json` to your ignore
+list.
 
 ## API
 

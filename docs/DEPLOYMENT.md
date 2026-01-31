@@ -72,3 +72,9 @@ in `Notes/email-settings.json`. Templates are created under `Notes/email/`.
 
 If you mount a notes volume in Docker, make sure it persists so email settings
 and templates are retained between container restarts.
+
+## AI settings
+
+AI settings live in `Notes/.ai/ai-settings.json` and are created on server
+startup. The AI index and chat history are stored under `Notes/.ai/`, so make
+sure your notes volume persists if you enable AI.
