@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "chats": [
+    {
+      "id": "20260131T143535-1d7a0eb91813d6b6",
+      "title": "New Chat",
+      "createdAt": "2026-01-31T14:35:35Z",
+      "updatedAt": "2026-01-31T14:35:35Z",
+      "messageCount": 0
+    },
+    {
+      "id": "20260131T070423-e9acaa0e2241a6e9",
+      "title": "have I written anything about grapes of wrath?",
+      "createdAt": "2026-01-31T07:04:23Z",
+      "updatedAt": "2026-01-31T14:34:55Z",
+      "messageCount": 4
+    }
+  ]
+}

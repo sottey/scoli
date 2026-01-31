@@ -1,10 +1,11 @@
 {
-  "version": 6,
+  "version": 7,
   "darkMode": true,
   "defaultView": "split",
   "sidebarWidth": 300,
   "defaultFolder": "Inbox",
   "showTemplates": false,
+  "showAiNode": true,
   "notesSortBy": "name",
   "notesSortOrder": "asc",
   "externalCommandsPath": ""

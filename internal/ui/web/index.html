@@ -124,6 +124,10 @@
                   <input id="settings-show-templates" type="checkbox" />
                   <span>Show Templates</span>
                 </label>
+                <label class="settings-row">
+                  <input id="settings-show-ai-node" type="checkbox" />
+                  <span>Show AI Node</span>
+                </label>
                 <label class="settings-field">
                   <span class="settings-label">Default View</span>
                   <select id="settings-default-view" class="settings-input">
@@ -268,6 +272,23 @@
               </div>
             </div>
             <div id="journal-feed" class="journal-feed"></div>
+          </div>
+          <div id="ai-panel" class="ai-panel hidden">
+            <div class="ai-toolbar">
+              <div class="ai-toolbar-title">AI</div>
+              <button id="ai-new-chat" class="primary" type="button">New Chat</button>
+            </div>
+            <div id="ai-setup-message" class="ai-setup-message hidden"></div>
+            <div class="ai-body">
+              <div id="ai-chat-list" class="ai-chat-list"></div>
+              <div class="ai-chat-view">
+                <div id="ai-chat-messages" class="ai-chat-messages"></div>
+                <div class="ai-chat-input">
+                  <textarea id="ai-chat-input" class="ai-chat-textarea" rows="3" placeholder="Ask about your notes..."></textarea>
+                  <button id="ai-chat-send" class="primary" type="button">Send</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

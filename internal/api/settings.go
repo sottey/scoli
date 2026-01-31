@@ -45,6 +45,7 @@ type Settings struct {
 	SidebarWidth         int               `json:"sidebarWidth"`
 	DefaultFolder        string            `json:"defaultFolder"`
 	ShowTemplates        bool              `json:"showTemplates"`
+	ShowAiNode           bool              `json:"showAiNode"`
 	NotesSortBy          string            `json:"notesSortBy"`
 	NotesSortOrder       string            `json:"notesSortOrder"`
 	ExternalCommandsPath string            `json:"externalCommandsPath"`
@@ -62,6 +63,7 @@ type SettingsPayload struct {
 	SidebarWidth         *int    `json:"sidebarWidth,omitempty"`
 	DefaultFolder        *string `json:"defaultFolder,omitempty"`
 	ShowTemplates        *bool   `json:"showTemplates,omitempty"`
+	ShowAiNode           *bool   `json:"showAiNode,omitempty"`
 	NotesSortBy          *string `json:"notesSortBy,omitempty"`
 	NotesSortOrder       *string `json:"notesSortOrder,omitempty"`
 	ExternalCommandsPath *string `json:"externalCommandsPath,omitempty"`
@@ -120,6 +122,10 @@ func (s *Server) handleSettingsUpdate(w http.ResponseWriter, r *http.Request) {
 		settings.ShowTemplates = *payload.ShowTemplates
 		changed = append(changed, "showTemplates")
 	}
+	if payload.ShowAiNode != nil {
+		settings.ShowAiNode = *payload.ShowAiNode
+		changed = append(changed, "showAiNode")
+	}
 	if payload.NotesSortBy != nil {
 		settings.NotesSortBy = *payload.NotesSortBy
 		changed = append(changed, "notesSortBy")
@@ -151,12 +157,13 @@ func (s *Server) loadSettings() (Settings, string, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			settings := Settings{
-				Version:              6,
+				Version:              7,
 				DarkMode:             false,
 				DefaultView:          "split",
 				SidebarWidth:         300,
 				DefaultFolder:        "",
 				ShowTemplates:        true,
+				ShowAiNode:           true,
 				NotesSortBy:          notesSortByName,
 				NotesSortOrder:       notesSortOrderAsc,
 				ExternalCommandsPath: "",
@@ -219,6 +226,10 @@ func (s *Server) loadSettings() (Settings, string, error) {
 	}
 	if settings.Version < 6 {
 		settings.Version = 6
+	}
+	if settings.Version < 7 {
+		settings.ShowAiNode = true
+		settings.Version = 7
 	}
 	if settings.RootIcons == nil {
 		settings.RootIcons = map[string]string{}

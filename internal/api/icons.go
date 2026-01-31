@@ -15,14 +15,15 @@ import (
 const maxRootIconSize = 1 << 20 // 1MB
 
 var allowedRootIconKeys = map[string]struct{}{
-	"notes":   {},
-	"daily":   {},
-	"tasks":   {},
-	"tags":    {},
+	"notes":    {},
+	"daily":    {},
+	"tasks":    {},
+	"tags":     {},
 	"mentions": {},
-	"journal": {},
-	"inbox":   {},
-	"sheets":  {},
+	"journal":  {},
+	"inbox":    {},
+	"sheets":   {},
+	"ai":       {},
 }
 
 func (s *Server) handleRootIconUpload(w http.ResponseWriter, r *http.Request) {

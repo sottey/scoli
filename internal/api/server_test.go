@@ -731,6 +731,9 @@ func TestSettingsCRUD(t *testing.T) {
 	if settingsResp.Settings.DefaultFolder != "" {
 		t.Fatalf("expected defaultFolder empty, got %q", settingsResp.Settings.DefaultFolder)
 	}
+	if !settingsResp.Settings.ShowAiNode {
+		t.Fatalf("expected showAiNode true by default")
+	}
 	if _, err := os.Stat(filepath.Join(dir, "settings.json")); err != nil {
 		t.Fatalf("expected settings.json to exist")
 	}
@@ -784,6 +787,13 @@ func TestReservedRootNames(t *testing.T) {
 
 	rec := doRequest(t, router, http.MethodPost, "/folders", map[string]string{
 		"path": "email",
+	})
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", rec.Code)
+	}
+
+	rec = doRequest(t, router, http.MethodPost, "/folders", map[string]string{
+		"path": ".ai",
 	})
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", rec.Code)

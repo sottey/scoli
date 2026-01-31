@@ -1,0 +1,62 @@
+{
+  "id": "20260131T070423-e9acaa0e2241a6e9",
+  "title": "have I written anything about grapes of wrath?",
+  "createdAt": "2026-01-31T07:04:23Z",
+  "updatedAt": "2026-01-31T14:34:55Z",
+  "messages": [
+    {
+      "role": "user",
+      "content": "have I written anything about grapes of wrath?",
+      "createdAt": "2026-01-31T14:34:13Z"
+    },
+    {
+      "role": "assistant",
+      "content": "I could not find any information about \"The Grapes of Wrath\" in the provided snippets. You might want to refine your question or check other sources.",
+      "createdAt": "2026-01-31T14:34:13Z",
+      "sources": [
+        {
+          "path": "Daily/2026-01-31.md",
+          "heading": "Daily Template Saturday (2026-01-31)",
+          "snippet": "If you are looking at the template, this is used whenever you create a new note in the Daily folder. If you are looking at a daily note, this is the end result of the template.\n\nDates can be inserted (as you see in the title)\n\nYou can add t..."
+        },
+        {
+          "path": "Daily/2026-01-29.md",
+          "heading": "Daily Template Thursday (2026-01-29)",
+          "snippet": "If you are looking at the template, this is used whenever you create a new note in the Daily folder. If you are looking at a daily note, this is the end result of the template.\n\nDates can be inserted (as you see in the title)\n\nYou can add t..."
+        },
+        {
+          "path": "Daily/2026-01-30.md",
+          "heading": "Daily Template Friday (2026-01-30)",
+          "snippet": "If you are looking at the template, this is used whenever you create a new note in the Daily folder. If you are looking at a daily note, this is the end result of the template.\n\nDates can be inserted (as you see in the title)\n\nYou can add t..."
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "When using a template, can dates be inserted?",
+      "createdAt": "2026-01-31T14:34:55Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, dates can be inserted when using a template, as indicated in the snippets.",
+      "createdAt": "2026-01-31T14:34:55Z",
+      "sources": [
+        {
+          "path": "Daily/2026-01-30.md",
+          "heading": "Daily Template Friday (2026-01-30)",
+          "snippet": "If you are looking at the template, this is used whenever you create a new note in the Daily folder. If you are looking at a daily note, this is the end result of the template.\n\nDates can be inserted (as you see in the title)\n\nYou can add t..."
+        },
+        {
+          "path": "Daily/2026-01-31.md",
+          "heading": "Daily Template Saturday (2026-01-31)",
+          "snippet": "If you are looking at the template, this is used whenever you create a new note in the Daily folder. If you are looking at a daily note, this is the end result of the template.\n\nDates can be inserted (as you see in the title)\n\nYou can add t..."
+        },
+        {
+          "path": "Daily/2026-01-29.md",
+          "heading": "Daily Template Thursday (2026-01-29)",
+          "snippet": "If you are looking at the template, this is used whenever you create a new note in the Daily folder. If you are looking at a daily note, this is the end result of the template.\n\nDates can be inserted (as you see in the title)\n\nYou can add t..."
+        }
+      ]
+    }
+  ]
+}

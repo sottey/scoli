@@ -120,12 +120,13 @@ data can include trailing empty rows.
 
 ```json
 {
-  "version": 6,
+  "version": 7,
   "darkMode": false,
   "defaultView": "split",
   "sidebarWidth": 300,
   "defaultFolder": "",
   "showTemplates": true,
+  "showAiNode": true,
   "notesSortBy": "name",
   "notesSortOrder": "asc",
   "externalCommandsPath": "",
@@ -170,6 +171,12 @@ data can include trailing empty rows.
 
 Email settings are stored in `Notes/email-settings.json`, with templates under
 `Notes/email/`.
+
+## AI settings
+
+AI settings are stored in `Notes/.ai/ai-settings.json`. This file is created
+on server startup if missing so you can keep it out of version control. It
+contains the OpenAI API key and AI tuning values.
 
 ## Templates
 
@@ -901,12 +908,13 @@ Response:
 ```json
 {
   "settings": {
-    "version": 6,
+    "version": 7,
     "darkMode": false,
     "defaultView": "split",
     "sidebarWidth": 300,
     "defaultFolder": "",
     "showTemplates": true,
+    "showAiNode": true,
     "notesSortBy": "name",
     "notesSortOrder": "asc",
     "externalCommandsPath": "",
@@ -932,10 +940,65 @@ Body (any subset of fields):
   "sidebarWidth": 320,
   "defaultFolder": "Projects",
   "showTemplates": true,
+  "showAiNode": true,
   "notesSortBy": "updated",
   "notesSortOrder": "desc",
   "externalCommandsPath": "commands.json"
 }
+```
+
+### AI
+
+#### Read AI settings
+
+`GET /ai/settings`
+
+Response:
+
+```json
+{
+  "settings": {
+    "version": 1,
+    "apiKey": "",
+    "chatModel": "gpt-4o-mini",
+    "embedModel": "text-embedding-3-small",
+    "topK": 6,
+    "maxContextChunks": 6,
+    "temperature": 0.2,
+    "maxOutputTokens": 500,
+    "chunkCharLimit": 1600,
+    "sectionCharLimit": 5000
+  },
+  "configured": false
+}
+```
+
+#### List chats
+
+`GET /ai/chats`
+
+#### Create chat
+
+`POST /ai/chats`
+
+Body:
+
+```json
+{ "title": "New Chat" }
+```
+
+#### Get chat
+
+`GET /ai/chats/{id}`
+
+#### Send message
+
+`POST /ai/chats/{id}/messages`
+
+Body:
+
+```json
+{ "content": "What was that quote from Grape of Wrath I wrote about?" }
 ```
 
 ### Email settings

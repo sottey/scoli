@@ -240,6 +240,9 @@ func (s *Server) listTasks() ([]TaskItem, string, error) {
 			return err
 		}
 		if d.IsDir() {
+			if isAiDir(d.Name()) {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if isIgnoredFile(d.Name()) || !isMarkdown(d.Name()) {
@@ -435,6 +438,9 @@ func (s *Server) archiveCompletedTasks() (int, int, error) {
 			return err
 		}
 		if d.IsDir() {
+			if isAiDir(d.Name()) {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if isIgnoredFile(d.Name()) || !isMarkdown(d.Name()) {

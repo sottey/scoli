@@ -17,6 +17,9 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 		notesDir: notesDir,
 		logger:   baseLogger.With("component", "api"),
 	}
+	if err := s.ensureAIStorage(); err != nil {
+		s.logger.Error("ai storage init failed", "error", err)
+	}
 	s.startEmailSchedulers()
 
 	r := chi.NewRouter()
@@ -63,6 +66,13 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 	r.Delete("/sheets", s.handleSheetsDelete)
 	r.Post("/sheets/import", s.handleSheetsImport)
 	r.Get("/sheets/export", s.handleSheetsExport)
+	r.Route("/ai", func(r chi.Router) {
+		r.Get("/settings", s.handleAISettingsGet)
+		r.Get("/chats", s.handleAIChatsList)
+		r.Post("/chats", s.handleAIChatCreate)
+		r.Get("/chats/{id}", s.handleAIChatGet)
+		r.Post("/chats/{id}/messages", s.handleAIChatMessage)
+	})
 
 	return r
 }

@@ -21,12 +21,16 @@ type Server struct {
 	notesDir           string
 	logger             *slog.Logger
 	emailSchedulerOnce sync.Once
+	aiIndexOnce        sync.Once
+	aiIndexStore       *AIIndex
+	aiMu               sync.Mutex
 }
 
 var timeNow = time.Now
 
 const inboxNotePath = "Inbox.md"
 const scratchNotePath = "scratch.md"
+const aiFolderName = ".ai"
 const dailyFolderName = "Daily"
 const dailyDateLayout = "2006-01-02"
 const sheetsFolderName = "Sheets"
@@ -442,6 +446,9 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		if d.IsDir() {
+			if isAiDir(d.Name()) {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if isIgnoredFile(d.Name()) {
@@ -499,6 +506,9 @@ func (s *Server) handleTags(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		if d.IsDir() {
+			if isAiDir(d.Name()) {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if isIgnoredFile(d.Name()) {
@@ -580,6 +590,9 @@ func (s *Server) handleMentions(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		if d.IsDir() {
+			if isAiDir(d.Name()) {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if isIgnoredFile(d.Name()) {
@@ -910,6 +923,9 @@ func (s *Server) buildTree(absPath, relPath string, showTemplates bool, sortBy, 
 	var nodes []treeNodeSortEntry
 	for _, entry := range entries {
 		name := entry.Name()
+		if entry.IsDir() && isAiDir(name) {
+			continue
+		}
 		if relPath == "" && entry.IsDir() && strings.EqualFold(name, sheetsFolderName) {
 			continue
 		}
@@ -1642,7 +1658,8 @@ func isReservedRootFolder(name string) bool {
 	case strings.ToLower(dailyFolderName),
 		strings.ToLower(sheetsFolderName),
 		strings.ToLower(journalFolderName),
-		strings.ToLower(emailTemplatesDir):
+		strings.ToLower(emailTemplatesDir),
+		strings.ToLower(aiFolderName):
 		return true
 	default:
 		return false
@@ -1700,6 +1717,10 @@ func isNoteFile(name string) bool {
 
 func isIgnoredFile(name string) bool {
 	return strings.HasPrefix(name, "._")
+}
+
+func isAiDir(name string) bool {
+	return strings.EqualFold(name, aiFolderName)
 }
 
 func isImage(name string) bool {
