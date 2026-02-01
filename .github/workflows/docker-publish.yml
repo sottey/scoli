@@ -39,11 +39,25 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest
 
+      - name: Compute build metadata
+        id: buildmeta
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          DOCKER_TAG="${TAG#v}"
+          COMMIT_SHA="$(git rev-parse --short=7 HEAD)"
+          echo "git_tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "docker_tag=${DOCKER_TAG}" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=${COMMIT_SHA}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            BUILD_GIT_TAG=${{ steps.buildmeta.outputs.git_tag }}
+            BUILD_DOCKER_TAG=${{ steps.buildmeta.outputs.docker_tag }}
+            BUILD_COMMIT_SHA=${{ steps.buildmeta.outputs.commit_sha }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
