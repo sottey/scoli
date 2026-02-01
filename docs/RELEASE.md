@@ -22,6 +22,9 @@ This publishes `sottey/scoli:<version>` and updates `sottey/scoli:latest`.
 ```bash
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
+  --build-arg BUILD_GIT_TAG=v<version> \
+  --build-arg BUILD_DOCKER_TAG=<version> \
+  --build-arg BUILD_COMMIT_SHA=$(git rev-parse --short=7 HEAD) \
   -t sottey/scoli:<version> \
   -t sottey/scoli:latest \
   --push .

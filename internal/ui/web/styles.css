@@ -1191,6 +1191,12 @@ body.theme-dark .task-chip.invalid {
   flex-wrap: wrap;
 }
 
+.settings-meta-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .settings-hint {
   font-size: 12px;
   color: var(--muted);

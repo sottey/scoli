@@ -222,7 +222,12 @@
             </div>
             <div class="settings-section settings-meta">
               <div class="settings-meta-row">
-                <div id="app-version" class="app-version"></div>
+                <div class="settings-meta-group">
+                  <div id="app-version" class="app-version"></div>
+                  <div id="build-git-tag" class="app-version"></div>
+                  <div id="build-docker-tag" class="app-version"></div>
+                  <div id="build-commit-sha" class="app-version"></div>
+                </div>
                 <form id="logout-form" class="logout-form" method="post" action="/logout">
                   <button class="ghost logout-btn" type="submit" title="Log out">Log out</button>
                 </form>

@@ -944,6 +944,11 @@ Response:
       "daily": "/icons/daily.png"
     }
   },
+  "build": {
+    "gitTag": "v0.1.3",
+    "dockerTag": "0.1.3",
+    "commitSha": "abcdef1"
+  },
   "notice": "Created settings.json"
 }
 ```

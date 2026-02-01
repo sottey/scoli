@@ -185,6 +185,10 @@ networks: {}
 The `user` entry keeps file ownership aligned with your host user so the app can
 create notes and templates inside the mounted `/notes` folder.
 
+Build metadata (git tag, Docker tag, commit SHA) is injected by the release
+workflow and surfaced in Settings. Local builds will show "Unknown/Custom"
+unless you pass build args (see `docs/RELEASE.md`).
+
 ## PWA (Installable Web App)
 
 Scoli ships as an installable PWA. This gives you a dockable window, offline

@@ -112,6 +112,9 @@ const updateBanner = document.getElementById("update-banner");
 const updateToast = document.getElementById("update-toast");
 const updateReload = document.getElementById("update-reload");
 const appVersionLabel = document.getElementById("app-version");
+const buildGitTagLabel = document.getElementById("build-git-tag");
+const buildDockerTagLabel = document.getElementById("build-docker-tag");
+const buildCommitShaLabel = document.getElementById("build-commit-sha");
 const appToast = document.getElementById("app-toast");
 const commandPalette = document.getElementById("command-palette");
 const commandInput = document.getElementById("command-input");
@@ -143,6 +146,7 @@ let sheetDirty = false;
 let sheetInstance = null;
 let lastNoteView = "preview";
 let currentSettings = { darkMode: false };
+let currentBuild = { gitTag: "", dockerTag: "", commitSha: "" };
 let currentEmailSettings = null;
 let settingsLoaded = false;
 let emailSettingsLoaded = false;
@@ -2926,6 +2930,30 @@ function applySettings(settings) {
   applySidebarWidth(currentSettings.sidebarWidth);
 }
 
+function formatBuildValue(value) {
+  if (!value) {
+    return "Unknown/Custom";
+  }
+  return value;
+}
+
+function applyBuildInfo(build) {
+  currentBuild = {
+    gitTag: build.gitTag || "",
+    dockerTag: build.dockerTag || "",
+    commitSha: build.commitSha || "",
+  };
+  if (buildGitTagLabel) {
+    buildGitTagLabel.textContent = `Build Tag: ${formatBuildValue(currentBuild.gitTag)}`;
+  }
+  if (buildDockerTagLabel) {
+    buildDockerTagLabel.textContent = `Docker Tag: ${formatBuildValue(currentBuild.dockerTag)}`;
+  }
+  if (buildCommitShaLabel) {
+    buildCommitShaLabel.textContent = `Commit SHA: ${formatBuildValue(currentBuild.commitSha)}`;
+  }
+}
+
 function applyEmailSettings(settings) {
   const smtp = settings.smtp || {};
   const digest = settings.digest || {};
@@ -5636,6 +5664,7 @@ async function loadTree(path = "") {
     }
     settingsLoaded = true;
     applySettings(settingsResponse.settings || {});
+    applyBuildInfo(settingsResponse.build || {});
     currentTree = tree;
     currentSheetsTree = sheetsTree;
     currentTags = tags;

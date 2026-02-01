@@ -53,8 +53,9 @@ type Settings struct {
 }
 
 type SettingsResponse struct {
-	Settings Settings `json:"settings"`
-	Notice   string   `json:"notice,omitempty"`
+	Settings Settings  `json:"settings"`
+	Build    BuildInfo `json:"build"`
+	Notice   string    `json:"notice,omitempty"`
 }
 
 type SettingsPayload struct {
@@ -77,6 +78,11 @@ func (s *Server) handleSettingsGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := SettingsResponse{Settings: settings}
+	resp.Build = BuildInfo{
+		GitTag:    BuildGitTag,
+		DockerTag: BuildDockerTag,
+		CommitSHA: BuildCommitSHA,
+	}
 	if notice != "" {
 		resp.Notice = notice
 	}
