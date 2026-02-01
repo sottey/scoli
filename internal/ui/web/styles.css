@@ -98,6 +98,10 @@ body.theme-dark {
   justify-content: center;
 }
 
+.app.sidebar-collapsed #tree-toggle-btn {
+  display: none;
+}
+
 .app.sidebar-collapsed .tree {
   padding: 12px 6px 18px;
 }
