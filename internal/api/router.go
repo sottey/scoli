@@ -57,6 +57,7 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 	r.Get("/tasks/filters", s.handleTaskFiltersGet)
 	r.Put("/tasks/filters", s.handleTaskFiltersUpdate)
 	r.Patch("/tasks/toggle", s.handleTasksToggle)
+	r.Patch("/tasks/due", s.handleTasksDue)
 	r.Patch("/tasks/archive", s.handleTasksArchive)
 	r.Get("/sheets/tree", s.handleSheetsTree)
 	r.Get("/sheets", s.handleSheetsGet)
@@ -72,6 +73,9 @@ func NewRouter(notesDir string, logger ...*slog.Logger) chi.Router {
 		r.Post("/chats", s.handleAIChatCreate)
 		r.Get("/chats/{id}", s.handleAIChatGet)
 		r.Post("/chats/{id}/messages", s.handleAIChatMessage)
+		r.Post("/chats/{id}/archive", s.handleAIChatArchive)
+		r.Post("/chats/{id}/unarchive", s.handleAIChatUnarchive)
+		r.Delete("/chats/{id}", s.handleAIChatDelete)
 	})
 
 	return r

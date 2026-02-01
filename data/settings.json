@@ -8,5 +8,16 @@
   "showAiNode": true,
   "notesSortBy": "name",
   "notesSortOrder": "asc",
-  "externalCommandsPath": ""
+  "externalCommandsPath": "",
+  "rootIcons": {
+    "ai": "/icons/ai-20260201-003300-ab64eabb954335a1.png",
+    "daily": "/icons/daily-20260201-003219-99187a5c56d17b41.png",
+    "inbox": "/icons/inbox-20260201-003209-d1da8ea8e6595656.png",
+    "journal": "/icons/journal-20260201-003254-4e8a7f183c722def.png",
+    "mentions": "/icons/mentions-20260201-003310-cc0955c23440ee24.png",
+    "notes": "/icons/notes-20260201-003226-fd6727776b2e3b37.png",
+    "sheets": "/icons/sheets-20260201-003242-9e5e29b303cbe197.png",
+    "tags": "/icons/tags-20260201-003305-4e2ab764d2bc75c3.png",
+    "tasks": "/icons/tasks-20260201-003250-33ca1c196f20da07.png"
+  }
 }

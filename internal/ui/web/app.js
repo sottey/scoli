@@ -55,6 +55,8 @@ const aiChatMessages = document.getElementById("ai-chat-messages");
 const aiChatInput = document.getElementById("ai-chat-input");
 const aiChatSend = document.getElementById("ai-chat-send");
 const aiBody = aiPanel ? aiPanel.querySelector(".ai-body") : null;
+const aiToolbarTitle = document.getElementById("ai-toolbar-title");
+const aiArchiveNotice = document.getElementById("ai-archive-notice");
 const settingsBtn = document.getElementById("settings-btn");
 const settingsPanel = document.getElementById("settings-panel");
 const brandBtn = document.getElementById("brand-btn");
@@ -130,8 +132,10 @@ let journalEntries = [];
 let journalSummary = { archives: [], totalCount: 0 };
 let journalViewMode = "main";
 let aiChats = [];
+let aiChatsAll = [];
 let aiActiveChatId = "";
 let aiConfigured = false;
+let aiViewMode = "active";
 let currentMode = "note";
 let currentSheetPath = "";
 let currentSheetData = [];
@@ -162,6 +166,7 @@ const inboxNotePath = "Inbox.md";
 const scratchNotePath = "scratch.md";
 const journalRootPath = "__journal__";
 const aiRootPath = "__ai__";
+const aiArchivedPath = `${aiRootPath}:archived`;
 const sheetRootPath = "__sheets__";
 const journalFolderName = "journal";
 const dailyFolderName = "Daily";
@@ -1919,16 +1924,20 @@ function showJournal() {
   loadJournalEntries().catch((err) => alert(err.message));
 }
 
-function showAi() {
+function showAi(mode = "active") {
   if (currentMode === "note") {
     lastNoteView = app.dataset.view;
   }
+  aiViewMode = mode === "archived" ? "archived" : "active";
   currentMode = "ai";
   setPreviewEditable(false);
   currentNotePath = "";
   currentSheetPath = "";
-  currentActivePath = aiRootPath;
-  notePath.textContent = "AI";
+  currentActivePath = aiViewMode === "archived" ? aiArchivedPath : aiRootPath;
+  notePath.textContent = aiViewMode === "archived" ? "AI - Archived" : "AI";
+  if (aiToolbarTitle) {
+    aiToolbarTitle.textContent = aiViewMode === "archived" ? "AI - Archived" : "AI";
+  }
   saveBtn.disabled = true;
   if (moveCompletedBtn) {
     moveCompletedBtn.disabled = true;
@@ -1974,6 +1983,8 @@ async function loadAiPanel() {
   const settingsResponse = await apiFetch("/ai/settings");
   aiConfigured = !!settingsResponse.configured;
   if (!aiConfigured) {
+    aiChatsAll = [];
+    updateAiRootCounts();
     showAiSetupMessage(
       "AI is not configured yet. Add your OpenAI API key to Notes/.ai/ai-settings.json under apiKey, then reload."
     );
@@ -1981,17 +1992,26 @@ async function loadAiPanel() {
   }
   hideAiSetupMessage();
   const list = await apiFetch("/ai/chats");
-  aiChats = (list && list.chats) || [];
-  renderAiChatList();
-  if (aiActiveChatId) {
+  aiChatsAll = (list && list.chats) || [];
+  applyAiChatView();
+  const activeMeta = aiChatsAll.find((chat) => chat.id === aiActiveChatId);
+  const inView =
+    activeMeta && (aiViewMode === "archived" ? activeMeta.archived : !activeMeta.archived);
+  if (aiActiveChatId && inView) {
     await loadAiChat(aiActiveChatId);
     return;
   }
+  aiActiveChatId = "";
   if (aiChats.length > 0) {
     await loadAiChat(aiChats[0].id);
     return;
   }
-  renderAiEmptyState("No chats yet. Start a new one to ask about your notes.");
+  const emptyMessage =
+    aiViewMode === "archived"
+      ? "No archived chats yet."
+      : "No chats yet. Start a new one to ask about your notes.";
+  setAiChatInputState(null);
+  renderAiEmptyState(emptyMessage);
 }
 
 function showAiSetupMessage(message) {
@@ -2014,6 +2034,43 @@ function hideAiSetupMessage() {
   }
 }
 
+function applyAiChatView() {
+  if (aiToolbarTitle) {
+    aiToolbarTitle.textContent = aiViewMode === "archived" ? "AI - Archived" : "AI";
+  }
+  aiChats =
+    aiViewMode === "archived"
+      ? aiChatsAll.filter((chat) => chat.archived)
+      : aiChatsAll.filter((chat) => !chat.archived);
+  updateAiRootCounts();
+  renderAiChatList();
+}
+
+function updateAiRootCounts() {
+  if (!treeContainer) {
+    return;
+  }
+  const rootRow = treeContainer.querySelector('.node-row[data-type="ai-root"]');
+  const archiveRow = treeContainer.querySelector('.node-row[data-type="ai-archive"]');
+  const totalChats = Array.isArray(aiChatsAll) ? aiChatsAll.length : 0;
+  const archivedChats = Array.isArray(aiChatsAll)
+    ? aiChatsAll.filter((chat) => chat.archived).length
+    : 0;
+  const activeChats = totalChats - archivedChats;
+  if (rootRow) {
+    const name = rootRow.querySelector(".node-name");
+    if (name) {
+      name.textContent = formatCountLabel("AI", activeChats);
+    }
+  }
+  if (archiveRow) {
+    const name = archiveRow.querySelector(".node-name");
+    if (name) {
+      name.textContent = formatCountLabel("Archived", archivedChats);
+    }
+  }
+}
+
 function renderAiChatList() {
   if (!aiChatList) {
     return;
@@ -2022,7 +2079,7 @@ function renderAiChatList() {
   if (!aiChats || aiChats.length === 0) {
     const empty = document.createElement("div");
     empty.className = "search-empty";
-    empty.textContent = "No chats yet.";
+    empty.textContent = aiViewMode === "archived" ? "No archived chats yet." : "No chats yet.";
     aiChatList.appendChild(empty);
     return;
   }
@@ -2048,8 +2105,41 @@ function renderAiChatList() {
     item.addEventListener("click", () => {
       loadAiChat(chat.id).catch((err) => alert(err.message));
     });
+    item.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      showContextMenu(event.clientX, event.clientY, buildAiChatMenu(chat));
+    });
     aiChatList.appendChild(item);
   });
+}
+
+function buildAiChatMenu(chat) {
+  const items = [];
+  if (chat.archived) {
+    items.push({
+      label: "Unarchive",
+      action: () => {
+        unarchiveAiChat(chat.id).catch((err) => alert(err.message));
+      },
+    });
+  } else {
+    items.push({
+      label: "Archive",
+      action: () => {
+        archiveAiChat(chat.id).catch((err) => alert(err.message));
+      },
+    });
+  }
+  items.push({
+    label: "Delete",
+    action: () => {
+      if (!confirm("Delete this chat? This cannot be undone.")) {
+        return;
+      }
+      deleteAiChat(chat.id).catch((err) => alert(err.message));
+    },
+  });
+  return items;
 }
 
 async function loadAiChat(id) {
@@ -2078,6 +2168,7 @@ function renderAiMessages(chat) {
     return;
   }
   aiChatMessages.innerHTML = "";
+  setAiChatInputState(chat);
   if (!chat || !Array.isArray(chat.messages) || chat.messages.length === 0) {
     renderAiEmptyState("Ask a question about your notes to get started.");
     return;
@@ -2109,12 +2200,36 @@ function renderAiMessages(chat) {
   aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
 }
 
+function setAiChatInputState(chat) {
+  const isArchived = !!(chat && chat.archived);
+  if (aiArchiveNotice) {
+    aiArchiveNotice.classList.toggle("hidden", !isArchived);
+  }
+  if (aiChatInput) {
+    aiChatInput.disabled = isArchived;
+    aiChatInput.placeholder = isArchived ? "Chat archived." : "Ask about your notes...";
+  }
+  if (aiChatSend) {
+    aiChatSend.disabled = isArchived;
+  }
+}
+
 async function createAiChat() {
+  if (aiViewMode === "archived") {
+    aiViewMode = "active";
+    currentActivePath = aiRootPath;
+    notePath.textContent = "AI";
+    if (aiToolbarTitle) {
+      aiToolbarTitle.textContent = "AI";
+    }
+    setActiveNode(currentActivePath);
+  }
   const response = await apiFetch("/ai/chats", { method: "POST" });
   if (response && response.id) {
-    aiChats = [response, ...aiChats];
+    const meta = { ...response, archived: false };
+    aiChatsAll = [meta, ...aiChatsAll];
     aiActiveChatId = response.id;
-    renderAiChatList();
+    applyAiChatView();
     const chat = await apiFetch(`/ai/chats/${encodeURIComponent(response.id)}`);
     renderAiMessages(chat);
   } else {
@@ -2131,6 +2246,11 @@ async function sendAiMessage() {
   }
   const content = aiChatInput ? aiChatInput.value.trim() : "";
   if (!content) {
+    return;
+  }
+  const activeMeta = aiChatsAll.find((chat) => chat.id === aiActiveChatId);
+  if (activeMeta && activeMeta.archived) {
+    alert("This chat is archived. Unarchive it to continue.");
     return;
   }
   if (!aiActiveChatId) {
@@ -2156,32 +2276,57 @@ async function sendAiMessage() {
   if (response && response.chat) {
     const updated = response.chat;
     aiActiveChatId = updated.id;
-    const metaIndex = aiChats.findIndex((chat) => chat.id === updated.id);
-    if (metaIndex >= 0) {
-      aiChats[metaIndex] = {
-        ...aiChats[metaIndex],
-        title: updated.title,
-        updatedAt: updated.updatedAt,
-        messageCount: updated.messages ? updated.messages.length : aiChats[metaIndex].messageCount,
-      };
+    const allIndex = aiChatsAll.findIndex((chat) => chat.id === updated.id);
+    const archived = allIndex >= 0 ? aiChatsAll[allIndex].archived : false;
+    const meta = {
+      id: updated.id,
+      title: updated.title,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+      messageCount: updated.messages ? updated.messages.length : 0,
+      archived,
+    };
+    if (allIndex >= 0) {
+      aiChatsAll[allIndex] = meta;
     } else {
-      aiChats = [
-        {
-          id: updated.id,
-          title: updated.title,
-          createdAt: updated.createdAt,
-          updatedAt: updated.updatedAt,
-          messageCount: updated.messages ? updated.messages.length : 0,
-        },
-        ...aiChats,
-      ];
+      aiChatsAll = [meta, ...aiChatsAll];
     }
-    aiChats.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
-    renderAiChatList();
+    aiChatsAll.sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+    applyAiChatView();
     renderAiMessages(updated);
   } else {
     renderAiEmptyState("Unable to get a response.");
   }
+}
+
+async function archiveAiChat(id) {
+  await apiFetch(`/ai/chats/${encodeURIComponent(id)}/archive`, { method: "POST" });
+  if (aiActiveChatId === id) {
+    aiActiveChatId = "";
+  }
+  await loadAiPanel();
+}
+
+async function unarchiveAiChat(id) {
+  await apiFetch(`/ai/chats/${encodeURIComponent(id)}/unarchive`, { method: "POST" });
+  if (aiViewMode === "archived") {
+    aiViewMode = "active";
+    currentActivePath = aiRootPath;
+    setActiveNode(currentActivePath);
+    notePath.textContent = "AI";
+    if (aiToolbarTitle) {
+      aiToolbarTitle.textContent = "AI";
+    }
+  }
+  await loadAiPanel();
+}
+
+async function deleteAiChat(id) {
+  await apiFetch(`/ai/chats/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (aiActiveChatId === id) {
+    aiActiveChatId = "";
+  }
+  await loadAiPanel();
 }
 
 function showJournalArchive(date) {
@@ -4333,6 +4478,10 @@ function buildTaskListItem(task) {
   if (task.completed) {
     item.classList.add("completed");
   }
+  item.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    showContextMenu(event.clientX, event.clientY, buildTaskContextMenu(task));
+  });
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -4447,6 +4596,86 @@ async function toggleTaskCompletion(task, completed) {
         lineNumber: task.lineNumber,
         lineHash: task.lineHash,
         completed,
+      }),
+    });
+    await loadTree();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function buildTaskContextMenu(task) {
+  return [
+    {
+      label: "Add to Today",
+      action: () => {
+        const today = formatDailyDate(new Date());
+        setTaskDueDate(task, today);
+      },
+    },
+    {
+      label: "Select Date...",
+      action: async () => {
+        const value = await promptTaskDueDate(task);
+        if (value) {
+          setTaskDueDate(task, value);
+        }
+      },
+    },
+  ];
+}
+
+function promptTaskDueDate(task) {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "date";
+    input.style.position = "fixed";
+    input.style.left = "-1000px";
+    input.style.top = "0";
+    input.style.opacity = "0";
+    input.value = task.dueDateISO || formatDailyDate(new Date());
+    document.body.appendChild(input);
+
+    let resolved = false;
+    const cleanup = () => {
+      if (resolved) {
+        return;
+      }
+      resolved = true;
+      input.remove();
+    };
+
+    input.addEventListener("change", () => {
+      const value = input.value;
+      cleanup();
+      resolve(value || "");
+    });
+
+    input.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (!resolved) {
+          cleanup();
+          resolve("");
+        }
+      }, 200);
+    });
+
+    input.focus();
+    if (input.showPicker) {
+      input.showPicker();
+    }
+  });
+}
+
+async function setTaskDueDate(task, dueDate) {
+  try {
+    await apiFetch("/tasks/due", {
+      method: "PATCH",
+      body: JSON.stringify({
+        path: task.path,
+        lineNumber: task.lineNumber,
+        lineHash: task.lineHash,
+        dueDate,
       }),
     });
     await loadTree();
@@ -4902,7 +5131,7 @@ function buildJournalNode(summary = {}) {
 
 function buildAiRoot() {
   const wrapper = document.createElement("div");
-  wrapper.className = "tree-node folder ai-root";
+  wrapper.className = "tree-node folder ai-root collapsed";
 
   const row = document.createElement("div");
   row.className = "node-row";
@@ -4923,9 +5152,34 @@ function buildAiRoot() {
 
   applyRootIconToRow(row, "ai");
 
+  const children = document.createElement("div");
+  children.className = "node-children";
+
+  const archiveNode = document.createElement("div");
+  archiveNode.className = "tree-node file ai-archive";
+  const archiveRow = document.createElement("div");
+  archiveRow.className = "node-row";
+  archiveRow.style.paddingLeft = "28px";
+  archiveRow.dataset.path = aiArchivedPath;
+  archiveRow.dataset.type = "ai-archive";
+
+  const archiveIcon = document.createElement("span");
+  archiveIcon.className = "file-icon";
+  archiveRow.appendChild(archiveIcon);
+
+  const archiveName = document.createElement("span");
+  archiveName.className = "node-name";
+  archiveName.textContent = "Archived";
+  archiveRow.appendChild(archiveName);
+
+  archiveNode.appendChild(archiveRow);
+  children.appendChild(archiveNode);
+  wrapper.appendChild(children);
+
   row.addEventListener("click", (event) => {
     event.stopPropagation();
     hideContextMenu();
+    wrapper.classList.toggle("collapsed");
     currentActivePath = aiRootPath;
     setActiveNode(currentActivePath);
     showAi();
@@ -4933,7 +5187,22 @@ function buildAiRoot() {
 
   row.addEventListener("contextmenu", (event) => {
     event.preventDefault();
-    showContextMenu(event.clientX, event.clientY, [...rootIconMenuItems("ai", row)]);
+    const isCollapsed = wrapper.classList.contains("collapsed");
+    showContextMenu(event.clientX, event.clientY, [
+      ...rootIconMenuItems("ai", row),
+      {
+        label: isCollapsed ? "Expand" : "Collapse",
+        action: () => wrapper.classList.toggle("collapsed"),
+      },
+    ]);
+  });
+
+  archiveRow.addEventListener("click", (event) => {
+    event.stopPropagation();
+    hideContextMenu();
+    currentActivePath = aiArchivedPath;
+    setActiveNode(currentActivePath);
+    showAi("archived");
   });
 
   return wrapper;
@@ -5103,6 +5372,7 @@ function renderTree(tree, tags, mentions, tasks, taskFilters) {
   treeContainer.appendChild(buildJournalNode(journalSummary));
   if (currentSettings.showAiNode) {
     treeContainer.appendChild(buildAiRoot());
+    updateAiRootCounts();
   }
   if (tags) {
     const tagRoot = buildTagRoot(tags);
@@ -5284,6 +5554,7 @@ function setActiveNode(path) {
       row.dataset.type === "journal-root" ||
       row.dataset.type === "journal-archive" ||
       row.dataset.type === "ai-root" ||
+      row.dataset.type === "ai-archive" ||
       row.dataset.type === "asset" ||
       row.dataset.type === "pdf" ||
       row.dataset.type === "csv" ||

@@ -706,6 +706,27 @@ Response:
 { "status": "updated" }
 ```
 
+#### Set task due date
+
+`PATCH /tasks/due`
+
+Body:
+
+```json
+{
+  "path": "Daily/2026-01-06.md",
+  "lineNumber": 12,
+  "lineHash": "abc123...",
+  "dueDate": "2026-02-01"
+}
+```
+
+Response:
+
+```json
+{ "status": "updated" }
+```
+
 #### Archive completed tasks
 
 `PATCH /tasks/archive`
@@ -977,6 +998,24 @@ Response:
 
 `GET /ai/chats`
 
+Response:
+
+```json
+{
+  "version": 1,
+  "chats": [
+    {
+      "id": "20260122T150343-acde1234",
+      "title": "New Chat",
+      "createdAt": "2026-01-22T15:03:43Z",
+      "updatedAt": "2026-01-22T15:03:43Z",
+      "messageCount": 0,
+      "archived": false
+    }
+  ]
+}
+```
+
 #### Create chat
 
 `POST /ai/chats`
@@ -991,6 +1030,19 @@ Body:
 
 `GET /ai/chats/{id}`
 
+Response:
+
+```json
+{
+  "id": "20260122T150343-acde1234",
+  "title": "New Chat",
+  "createdAt": "2026-01-22T15:03:43Z",
+  "updatedAt": "2026-01-22T15:03:43Z",
+  "archived": false,
+  "messages": []
+}
+```
+
 #### Send message
 
 `POST /ai/chats/{id}/messages`
@@ -1000,6 +1052,20 @@ Body:
 ```json
 { "content": "What was that quote from Grape of Wrath I wrote about?" }
 ```
+
+Archived chats return `409` with `chat is archived`.
+
+#### Archive chat
+
+`POST /ai/chats/{id}/archive`
+
+#### Unarchive chat
+
+`POST /ai/chats/{id}/unarchive`
+
+#### Delete chat
+
+`DELETE /ai/chats/{id}`
 
 ### Email settings
 

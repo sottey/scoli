@@ -15,7 +15,8 @@ This file documents the current project shape and interaction model.
 - Left sidebar includes a `Journal` root below Tasks and above Tags that opens a
   rolling journal feed, with archive files shown as children under the Journal root.
 - Left sidebar includes an `AI` root (when enabled in settings) that opens a chat list
-  with a New Chat button and note-aware conversation view.
+  with a New Chat button and note-aware conversation view, plus an `Archived` child
+  node for archived chats (read-only until unarchived).
 - Left sidebar includes a `Mentions` root below Tags that aggregates `@mention`
   tokens across notes.
 - Sidebar folder, task, and tag rows display immediate-child counts in the label.

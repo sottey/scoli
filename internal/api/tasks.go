@@ -37,6 +37,13 @@ type TaskTogglePayload struct {
 	Completed  bool   `json:"completed"`
 }
 
+type TaskDuePayload struct {
+	Path       string `json:"path"`
+	LineNumber int    `json:"lineNumber"`
+	LineHash   string `json:"lineHash"`
+	DueDate    string `json:"dueDate"`
+}
+
 type TaskArchiveResponse struct {
 	Archived int `json:"archived"`
 	Files    int `json:"files"`
@@ -207,6 +214,97 @@ func (s *Server) handleTasksToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.logger.Info("task toggled", "path", relPath, "line", lineIndex+1, "completed", payload.Completed)
+	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+func (s *Server) handleTasksDue(w http.ResponseWriter, r *http.Request) {
+	payload, err := decodeJSON[TaskDuePayload](r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if strings.TrimSpace(payload.Path) == "" {
+		writeError(w, http.StatusBadRequest, "path is required")
+		return
+	}
+	if payload.LineNumber <= 0 {
+		writeError(w, http.StatusBadRequest, "lineNumber must be positive")
+		return
+	}
+	rawDue := strings.TrimSpace(payload.DueDate)
+	if rawDue == "" {
+		writeError(w, http.StatusBadRequest, "dueDate is required")
+		return
+	}
+	dueISO, ok := normalizeDueDate(rawDue)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid dueDate")
+		return
+	}
+
+	absPath, relPath, err := s.resolvePath(payload.Path)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if !isMarkdown(absPath) {
+		writeError(w, http.StatusBadRequest, "not a note file")
+		return
+	}
+
+	data, err := os.ReadFile(absPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			writeError(w, http.StatusNotFound, "note not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "unable to read note")
+		return
+	}
+
+	lines := strings.Split(string(data), "\n")
+	lineIndex := payload.LineNumber - 1
+	if lineIndex < 0 || lineIndex >= len(lines) || !lineHashMatches(lines[lineIndex], payload.LineHash) {
+		if payload.LineHash == "" {
+			writeError(w, http.StatusBadRequest, "task not found")
+			return
+		}
+		found := false
+		for i, line := range lines {
+			if lineHashMatches(line, payload.LineHash) {
+				lineIndex = i
+				found = true
+				break
+			}
+		}
+		if !found {
+			writeError(w, http.StatusBadRequest, "task not found")
+			return
+		}
+	}
+
+	originalLine := lines[lineIndex]
+	lineEnding := ""
+	if strings.HasSuffix(originalLine, "\r") {
+		lineEnding = "\r"
+		originalLine = strings.TrimSuffix(originalLine, "\r")
+	}
+
+	updatedLine, ok := setTaskLineDueDate(originalLine, dueISO)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "line is not a task")
+		return
+	}
+	lines[lineIndex] = updatedLine + lineEnding
+
+	updated := strings.Join(lines, "\n")
+	if err := os.WriteFile(absPath, []byte(updated), 0o644); err != nil {
+		s.logger.Error("unable to update task due date", "path", relPath, "line", lineIndex+1, "error", err)
+		writeError(w, http.StatusInternalServerError, "unable to update note")
+		return
+	}
+
+	s.logger.Info("task due date updated", "path", relPath, "line", lineIndex+1, "due", dueISO)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 

@@ -18,6 +18,7 @@ var (
 	taskDuePattern       = regexp.MustCompile(`(^|\s)>(\S+)`)
 	taskPriorityPattern  = regexp.MustCompile(`(^|\s)\^([1-5])\b`)
 	taskTokenPattern     = regexp.MustCompile(`(^|\s)(#[A-Za-z]+|@[A-Za-z]+|\+[A-Za-z]+|\^[1-5]|>\S+)`)
+	taskSomedayPattern   = regexp.MustCompile(`(?i)(^|\s)#someday\b`)
 )
 
 type ParsedTodo struct {
@@ -97,6 +98,27 @@ func setTaskLineCompletion(line string, completed bool) (string, bool) {
 		marker = "x"
 	}
 	updated := line[:match[4]] + marker + line[match[5]:]
+	return updated, true
+}
+
+func setTaskLineDueDate(line string, dueISO string) (string, bool) {
+	loc := todoLinePattern.FindStringIndex(line)
+	if loc == nil {
+		return "", false
+	}
+	prefix := line[:loc[1]]
+	rest := line[loc[1]:]
+
+	masked, replacements := maskInlineCode(rest)
+	masked = taskDuePattern.ReplaceAllString(masked, " ")
+	masked = taskSomedayPattern.ReplaceAllString(masked, " ")
+	trimmed := strings.TrimSpace(strings.Join(strings.Fields(masked), " "))
+	if trimmed != "" {
+		trimmed = trimmed + " >" + dueISO
+	} else {
+		trimmed = ">" + dueISO
+	}
+	updated := prefix + restoreInlineCode(trimmed, replacements)
 	return updated, true
 }
 

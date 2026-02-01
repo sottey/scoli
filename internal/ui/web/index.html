@@ -30,9 +30,7 @@
         <div class="search-row">
           <input id="search-input" class="search-input" type="text" placeholder="Search notes and tasks" />
           <button id="search-btn" class="ghost icon-btn" title="Search" aria-label="Search">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.71.71l.27.28v.79l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/>
-            </svg>
+            <img src="/icons/search.png" alt="" aria-hidden="true" />
           </button>
         </div>
         <div id="search-results" class="search-results hidden"></div>
@@ -40,19 +38,13 @@
       <div id="tree-container" class="tree"></div>
       <div class="sidebar-footer">
         <button id="sidebar-toggle" class="ghost icon-btn" title="Collapse sidebar" aria-label="Collapse sidebar">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 5h6v14H4V5zm10 0h6v14h-6V5z"/>
-          </svg>
+          <img src="/icons/sidebar.png" alt="" aria-hidden="true" />
         </button>
         <button id="tree-toggle-btn" class="ghost icon-btn" title="Toggle all nodes" aria-label="Toggle all nodes">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 4h10v2H7V4zm0 14h10v2H7v-2zM4 7h16v10H4V7zm2 2v6h12V9H6z"/>
-          </svg>
+          <img src="/icons/collapse.png" alt="" aria-hidden="true" />
         </button>
         <button id="settings-btn" class="ghost icon-btn" title="Settings" aria-label="Settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M19.14 12.94a7.5 7.5 0 0 0 .05-.94 7.5 7.5 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.06 7.06 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54a7.06 7.06 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.7 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.5 7.5 0 0 0-.05.94 7.5 7.5 0 0 0 .05.94L2.82 14.5a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.5.39 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.58-.22 1.12-.55 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.56zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
-          </svg>
+          <img src="/icons/settings.png" alt="" aria-hidden="true" />
         </button>
       </div>
     </aside>
@@ -65,18 +57,14 @@
         </div>
         <div class="header-actions">
           <button id="scratch-btn" class="ghost icon-btn" type="button" title="Open scratch pad" aria-label="Open scratch pad">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 3h10a2 2 0 0 1 2 2v10.5l-5.5 5.5H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm10 12.5V5H5v14h5.5V15.5H15zm-3.5 1.5h2.1l2.9-2.9v2.1L13.1 19z"/>
-            </svg>
+            <img src="/icons/scratchpad.png" alt="" aria-hidden="true" />
           </button>
           <button id="move-completed-btn" class="ghost move-completed-btn" type="button" title="Move completed tasks to Done">
             Move Completed
           </button>
           <button id="date-pill" class="date-pill" type="button" title="Open today's note"></button>
           <button id="calendar-btn" class="ghost icon-btn calendar-btn" type="button" title="Open date picker" aria-label="Open date picker">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1zm12 8H5v9h14v-9zM5 8h14V6H5v2z"/>
-            </svg>
+            <img src="/icons/calendar.png" alt="" aria-hidden="true" />
           </button>
           <div id="date-popover" class="date-popover hidden" role="dialog" aria-label="Pick date">
             <input id="date-picker" class="date-picker" type="date" />
@@ -275,13 +263,16 @@
           </div>
           <div id="ai-panel" class="ai-panel hidden">
             <div class="ai-toolbar">
-              <div class="ai-toolbar-title">AI</div>
+              <div id="ai-toolbar-title" class="ai-toolbar-title">AI</div>
               <button id="ai-new-chat" class="primary" type="button">New Chat</button>
             </div>
             <div id="ai-setup-message" class="ai-setup-message hidden"></div>
             <div class="ai-body">
               <div id="ai-chat-list" class="ai-chat-list"></div>
               <div class="ai-chat-view">
+                <div id="ai-archive-notice" class="ai-archive-notice hidden">
+                  This chat is archived. Unarchive to continue.
+                </div>
                 <div id="ai-chat-messages" class="ai-chat-messages"></div>
                 <div class="ai-chat-input">
                   <textarea id="ai-chat-input" class="ai-chat-textarea" rows="3" placeholder="Ask about your notes..."></textarea>
