@@ -3,7 +3,6 @@
 
 
 ## MAYBE SOMEDAY
-- [ ] Template manager UI: templates are powerful but hidden; add a simple “Templates” view or a quick editor that lists all default template files.
 - [ ] Search improvements: show snippet matches with highlighted terms and a “search in folder” option.
 - [ ] CSV import/export polish for Sheets: round out with column type inference and per-sheet settings (freeze header, default column widths).
 - [ ] Flash cards Node - Ability to set texst for a "front" and a "back" and the ability to run through a deck
@@ -24,6 +23,7 @@
 
 
 ## COMPLETED
+- [X] Template manager UI: templates are powerful but hidden; add a simple “Templates” view or a quick editor that lists all default template files.
 - [X] Universal prompt. Hitting a key compo brings up a text box the user can use to find a command.action they want to do.
 - [X] Tag pills are too tight (spce around the word) and too loose (space between the pills)
 - [x] Ability to change icons on any root nodes via context menu upload

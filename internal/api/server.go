@@ -105,6 +105,15 @@ func (s *Server) handleTree(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "unable to load settings")
 		return
 	}
+	showTemplates := settings.ShowTemplates
+	showTemplatesParam := strings.TrimSpace(r.URL.Query().Get("showTemplates"))
+	if showTemplatesParam != "" {
+		if showTemplatesParam == "0" || strings.EqualFold(showTemplatesParam, "false") {
+			showTemplates = false
+		} else {
+			showTemplates = true
+		}
+	}
 	pathParam := r.URL.Query().Get("path")
 	absPath, relPath, err := s.resolvePath(pathParam)
 	if err != nil {
@@ -132,7 +141,7 @@ func (s *Server) handleTree(w http.ResponseWriter, r *http.Request) {
 		Type: "folder",
 	}
 
-	children, err := s.buildTree(absPath, relPath, settings.ShowTemplates, settings.NotesSortBy, settings.NotesSortOrder)
+	children, err := s.buildTree(absPath, relPath, showTemplates, settings.NotesSortBy, settings.NotesSortOrder)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "unable to build tree")
 		return

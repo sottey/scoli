@@ -163,6 +163,15 @@
             </div>
             <div class="settings-section">
               <div class="settings-section-header">
+                <h3 class="settings-section-title">Templates</h3>
+                <p class="settings-section-desc">Manage template files under Notes.</p>
+              </div>
+              <div class="settings-actions">
+                <button id="templates-open-btn" class="primary" type="button">Edit Templates</button>
+              </div>
+            </div>
+            <div class="settings-section">
+              <div class="settings-section-header">
                 <h3 class="settings-section-title">Email</h3>
                 <p class="settings-section-desc">Daily digest and due task notifications.</p>
               </div>
@@ -378,6 +387,40 @@
       <div class="modal-actions">
         <button id="task-filters-cancel" class="ghost" type="button">Cancel</button>
         <button id="task-filters-save" class="primary" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+  <div id="templates-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Templates">
+    <div class="modal-backdrop" data-action="close"></div>
+    <div class="modal-card templates-modal-card" role="document">
+      <div class="modal-header">
+        <div class="modal-title">Templates</div>
+        <button id="templates-close" class="ghost icon-btn" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="templates-body">
+        <div class="templates-list-panel">
+          <div class="templates-list-toolbar">
+            <input id="templates-search" class="command-input templates-search" type="text" placeholder="Search templates" />
+            <button id="templates-new-btn" class="ghost" type="button">New</button>
+          </div>
+          <div id="templates-list" class="templates-list"></div>
+        </div>
+        <div class="templates-editor-panel">
+          <div class="templates-editor-header">
+            <div id="templates-path" class="templates-path">Select a template</div>
+          </div>
+          <textarea id="templates-editor" class="modal-textarea templates-editor" rows="12" placeholder="Template contents..."></textarea>
+          <div class="modal-actions">
+            <button id="templates-revert-btn" class="ghost" type="button">Revert</button>
+            <button id="templates-delete-btn" class="ghost" type="button">Delete</button>
+            <button id="templates-create-btn" class="ghost" type="button">Create Note</button>
+            <button id="templates-save-btn" class="primary" type="button">Save</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

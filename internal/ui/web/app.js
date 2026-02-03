@@ -100,6 +100,19 @@ const taskFiltersClose = document.getElementById("task-filters-close");
 const taskFiltersCancel = document.getElementById("task-filters-cancel");
 const taskFiltersSave = document.getElementById("task-filters-save");
 const taskFiltersBackdrop = taskFiltersModal ? taskFiltersModal.querySelector(".modal-backdrop") : null;
+const templatesOpenBtn = document.getElementById("templates-open-btn");
+const templatesModal = document.getElementById("templates-modal");
+const templatesModalBackdrop = templatesModal ? templatesModal.querySelector(".modal-backdrop") : null;
+const templatesClose = document.getElementById("templates-close");
+const templatesSearch = document.getElementById("templates-search");
+const templatesList = document.getElementById("templates-list");
+const templatesEditor = document.getElementById("templates-editor");
+const templatesPath = document.getElementById("templates-path");
+const templatesSaveBtn = document.getElementById("templates-save-btn");
+const templatesDeleteBtn = document.getElementById("templates-delete-btn");
+const templatesRevertBtn = document.getElementById("templates-revert-btn");
+const templatesNewBtn = document.getElementById("templates-new-btn");
+const templatesCreateBtn = document.getElementById("templates-create-btn");
 const whatsNewModal = document.getElementById("whats-new-modal");
 const whatsNewList = document.getElementById("whats-new-list");
 const whatsNewClose = document.getElementById("whats-new-close");
@@ -181,6 +194,13 @@ let scratchAutosaveTimer = null;
 let scratchDirty = false;
 let scratchSaveInFlight = false;
 const scratchAutosaveDelayMs = 1200;
+let templatesIndex = [];
+let templatesFiltered = [];
+let activeTemplatePath = "";
+let activeTemplateContent = "";
+let templatesDirty = false;
+let templatesSaveInFlight = false;
+let templatesPendingCreate = false;
 let previewSyncTimer = null;
 let previewSyncing = false;
 let taskMetaOverflowTimer = null;
@@ -3459,7 +3479,7 @@ function buildTreeNode(node, depth = 0) {
             action: () => createNote(node.path),
           },
           {
-            label: "Edit Template",
+            label: "Edit Default Template",
             action: () => editTemplate(node.path),
           },
           {
@@ -3485,7 +3505,7 @@ function buildTreeNode(node, depth = 0) {
             action: () => showNotesSortMenu(event.clientX, event.clientY),
           },
           {
-            label: "Edit Template",
+            label: "Edit Default Template",
             action: () => editTemplate(node.path),
           },
           {
@@ -3517,7 +3537,7 @@ function buildTreeNode(node, depth = 0) {
           action: () => showNotesSortMenu(event.clientX, event.clientY),
         },
         {
-          label: "Edit Template",
+          label: "Edit Default Template",
           action: () => editTemplate(node.path),
         },
         {
@@ -3726,6 +3746,12 @@ function getBuiltinCommands() {
     { label: "Open Journal", keywords: ["journal"], run: () => showJournal() },
     { label: "Open Scratch Pad", keywords: ["scratch"], run: () => openScratchDialog() },
     { label: "Open Settings", keywords: ["settings"], run: () => showSettings() },
+    { label: "Edit Templates", keywords: ["templates", "template"], run: () => openTemplatesModal() },
+    {
+      label: "New Note From Template",
+      keywords: ["template", "note", "create"],
+      run: () => openTemplatesModal({ createNote: true }),
+    },
     {
       label: "New Note",
       keywords: ["create", "note"],
@@ -5972,6 +5998,391 @@ async function saveTaskFiltersFromModal() {
   }
 }
 
+function isTemplatesModalOpen() {
+  return templatesModal && !templatesModal.classList.contains("hidden");
+}
+
+function normalizeTemplateContent(value) {
+  return String(value || "").replace(/\r\n/g, "\n");
+}
+
+function updateTemplateActionState() {
+  if (templatesSaveBtn) {
+    templatesSaveBtn.disabled = !activeTemplatePath || !templatesDirty;
+  }
+  if (templatesRevertBtn) {
+    templatesRevertBtn.disabled = !activeTemplatePath || !templatesDirty;
+  }
+  if (templatesDeleteBtn) {
+    const canDelete = activeTemplatePath && !isDefaultTemplatePath(activeTemplatePath);
+    templatesDeleteBtn.disabled = !canDelete;
+    templatesDeleteBtn.title = canDelete ? "Delete template" : "Default templates cannot be deleted";
+  }
+  if (templatesCreateBtn) {
+    templatesCreateBtn.disabled = !activeTemplatePath;
+  }
+  if (templatesEditor) {
+    templatesEditor.disabled = !activeTemplatePath;
+  }
+}
+
+function setTemplateSelection(path) {
+  if (!templatesList) {
+    return;
+  }
+  templatesList.querySelectorAll(".templates-item").forEach((item) => {
+    item.classList.toggle("active", item.dataset.path === path);
+  });
+}
+
+async function loadTemplateContent(path) {
+  if (!templatesEditor || !templatesPath) {
+    return;
+  }
+  templatesEditor.value = "";
+  templatesPath.textContent = path || "Select a template";
+  updateTemplateActionState();
+  if (!path) {
+    return;
+  }
+  try {
+    const data = await apiFetch(`/notes?path=${encodeURIComponent(path)}`);
+    activeTemplatePath = path;
+    activeTemplateContent = normalizeTemplateContent(data.content || "");
+    templatesEditor.value = activeTemplateContent;
+    templatesDirty = false;
+    setTemplateSelection(path);
+    updateTemplateActionState();
+    setTimeout(() => templatesEditor.focus(), 0);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function collectTemplatesFromTree(node, list) {
+  if (!node) {
+    return;
+  }
+  if (node.type === "file" && isTemplatePath(node.name)) {
+    list.push({ path: node.path, name: node.name });
+  }
+  (node.children || []).forEach((child) => collectTemplatesFromTree(child, list));
+}
+
+function renderTemplatesList() {
+  if (!templatesList) {
+    return;
+  }
+  const query = (templatesSearch ? templatesSearch.value : "").trim().toLowerCase();
+  templatesFiltered = templatesIndex.filter((entry) => {
+    if (!query) {
+      return true;
+    }
+    return (
+      entry.name.toLowerCase().includes(query) ||
+      entry.path.toLowerCase().includes(query)
+    );
+  });
+
+  templatesList.innerHTML = "";
+  if (templatesFiltered.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "templates-empty";
+    empty.textContent = "No templates found.";
+    templatesList.appendChild(empty);
+    setTemplateSelection("");
+    return;
+  }
+
+  templatesFiltered.forEach((entry) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "templates-item";
+    item.dataset.path = entry.path;
+    const title = document.createElement("strong");
+    title.textContent = entry.name;
+    const folder = entry.path.split("/").slice(0, -1).join("/") || "Notes";
+    const subtitle = document.createElement("span");
+    subtitle.textContent = folder;
+    item.appendChild(title);
+    item.appendChild(subtitle);
+    item.addEventListener("click", () => selectTemplate(entry.path));
+    templatesList.appendChild(item);
+  });
+  setTemplateSelection(activeTemplatePath);
+}
+
+async function ensureTemplateFile(path) {
+  if (!path) {
+    return;
+  }
+  try {
+    await apiFetch("/notes", {
+      method: "POST",
+      body: JSON.stringify({ path, content: "" }),
+    });
+  } catch (err) {
+    if (String(err.message || "").toLowerCase().includes("already exists")) {
+      return;
+    }
+    throw err;
+  }
+}
+
+async function createNoteFromTemplate(path) {
+  if (!path) {
+    return;
+  }
+  let templateContent = "";
+  try {
+    const data = await apiFetch(`/notes?path=${encodeURIComponent(path)}`);
+    templateContent = normalizeTemplateContent(data.content || "");
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
+
+  const defaultFolder = path.split("/").slice(0, -1).join("/");
+  const folderInput = window.prompt("Folder path (relative to Notes)", defaultFolder);
+  if (folderInput === null) {
+    return;
+  }
+  const trimmedFolder = folderInput.trim();
+  if (trimmedFolder.includes("\\") || trimmedFolder.startsWith("/") || trimmedFolder.includes("..")) {
+    alert("Folder path must be relative to Notes.");
+    return;
+  }
+
+  const noteName = promptForName("New note name");
+  if (!noteName) {
+    return;
+  }
+  const fileName = ensureMarkdownName(noteName);
+  const notePath = trimmedFolder ? `${trimmedFolder}/${fileName}` : fileName;
+
+  try {
+    const data = await apiFetch("/notes", {
+      method: "POST",
+      body: JSON.stringify({
+        path: notePath,
+        content: templateContent,
+      }),
+    });
+    if (data.notice) {
+      alert(data.notice);
+    }
+    await loadTree();
+    await openNote(data.path || ensureMarkdownName(notePath));
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function loadTemplatesList({ selectPath = "" } = {}) {
+  if (!templatesList) {
+    return;
+  }
+  templatesList.innerHTML = "";
+  templatesIndex = [];
+  templatesFiltered = [];
+  try {
+    if (selectPath) {
+      await ensureTemplateFile(selectPath);
+    }
+    const tree = await apiFetch("/tree?showTemplates=true");
+    const entries = [];
+    collectTemplatesFromTree(tree, entries);
+    entries.sort((a, b) => a.path.localeCompare(b.path));
+    templatesIndex = entries;
+    renderTemplatesList();
+    if (selectPath) {
+      await loadTemplateContent(selectPath);
+      if (templatesPendingCreate) {
+        templatesPendingCreate = false;
+        await createNoteFromTemplate(selectPath);
+        closeTemplatesModal();
+      }
+      return;
+    }
+    if (templatesIndex.length > 0) {
+      await loadTemplateContent(templatesIndex[0].path);
+    } else {
+      activeTemplatePath = "";
+      activeTemplateContent = "";
+      templatesDirty = false;
+      if (templatesEditor) {
+        templatesEditor.value = "";
+      }
+      if (templatesPath) {
+        templatesPath.textContent = "Select a template";
+      }
+      updateTemplateActionState();
+    }
+    if (templatesPendingCreate) {
+      templatesPendingCreate = false;
+      if (templatesIndex.length === 1) {
+        await createNoteFromTemplate(templatesIndex[0].path);
+        closeTemplatesModal();
+      } else {
+        showToast("Select a template and click Create Note.");
+      }
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function selectTemplate(path) {
+  if (!path) {
+    return;
+  }
+  if (templatesDirty && activeTemplatePath && activeTemplatePath !== path) {
+    const confirmLeave = window.confirm("Discard unsaved template changes?");
+    if (!confirmLeave) {
+      return;
+    }
+  }
+  if (activeTemplatePath === path) {
+    return;
+  }
+  loadTemplateContent(path);
+}
+
+function openTemplatesModal({ path = "", createNote = false } = {}) {
+  if (!templatesModal || !templatesEditor) {
+    return;
+  }
+  hideContextMenu();
+  lastActiveElement = document.activeElement;
+  templatesModal.classList.remove("hidden");
+  if (templatesSearch) {
+    templatesSearch.value = "";
+  }
+  templatesEditor.value = "";
+  activeTemplatePath = "";
+  activeTemplateContent = "";
+  templatesDirty = false;
+  templatesPendingCreate = createNote;
+  updateTemplateActionState();
+  loadTemplatesList({ selectPath: path }).catch((err) => alert(err.message));
+}
+
+function closeTemplatesModal() {
+  if (!templatesModal) {
+    return;
+  }
+  if (templatesDirty) {
+    const confirmClose = window.confirm("Discard unsaved template changes?");
+    if (!confirmClose) {
+      return;
+    }
+  }
+  templatesModal.classList.add("hidden");
+  if (lastActiveElement && typeof lastActiveElement.focus === "function") {
+    lastActiveElement.focus();
+  }
+  lastActiveElement = null;
+}
+
+async function saveTemplateEdits() {
+  if (!activeTemplatePath || !templatesEditor) {
+    return;
+  }
+  if (templatesSaveInFlight) {
+    return;
+  }
+  const content = normalizeTemplateContent(templatesEditor.value || "");
+  const payload = { path: activeTemplatePath, content };
+  const exists = templatesIndex.some((entry) => entry.path === activeTemplatePath);
+  const method = exists ? "PATCH" : "POST";
+  templatesSaveInFlight = true;
+  try {
+    await apiFetch("/notes", {
+      method,
+      body: JSON.stringify(payload),
+    });
+    activeTemplateContent = content;
+    templatesDirty = false;
+    updateTemplateActionState();
+    await loadTemplatesList({ selectPath: activeTemplatePath });
+    if (!exists) {
+      await refreshTreePreserveMode();
+    }
+  } catch (err) {
+    if (method === "PATCH" && err.message === "note not found") {
+      await apiFetch("/notes", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      activeTemplateContent = content;
+      templatesDirty = false;
+      updateTemplateActionState();
+      await loadTemplatesList({ selectPath: activeTemplatePath });
+      await refreshTreePreserveMode();
+    } else {
+      alert(err.message);
+    }
+  } finally {
+    templatesSaveInFlight = false;
+  }
+}
+
+function revertTemplateEdits() {
+  if (!templatesEditor) {
+    return;
+  }
+  templatesEditor.value = activeTemplateContent;
+  templatesDirty = false;
+  updateTemplateActionState();
+}
+
+async function deleteTemplateFile() {
+  if (!activeTemplatePath || isDefaultTemplatePath(activeTemplatePath)) {
+    return;
+  }
+  const confirmDelete = window.confirm("Delete this template file?");
+  if (!confirmDelete) {
+    return;
+  }
+  try {
+    await apiFetch(`/notes?path=${encodeURIComponent(activeTemplatePath)}`, {
+      method: "DELETE",
+    });
+    activeTemplatePath = "";
+    activeTemplateContent = "";
+    templatesDirty = false;
+    await loadTemplatesList();
+    await refreshTreePreserveMode();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+async function createTemplateFile() {
+  const folder = window.prompt("Folder path (relative to Notes)", "");
+  if (folder === null) {
+    return;
+  }
+  const trimmedFolder = folder.trim();
+  if (trimmedFolder.includes("\\") || trimmedFolder.startsWith("/") || trimmedFolder.includes("..")) {
+    alert("Folder path must be relative to Notes.");
+    return;
+  }
+  const name = promptForNameWithDefault("Template name", "default.template");
+  if (!name) {
+    return;
+  }
+  const fileName = ensureTemplateName(name);
+  const path = trimmedFolder ? `${trimmedFolder}/${fileName}` : fileName;
+  try {
+    await ensureTemplateFile(path);
+    await loadTemplatesList({ selectPath: path });
+    await refreshTreePreserveMode();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
 async function closeScratchDialog() {
   if (!scratchDialog) {
     return;
@@ -6882,6 +7293,15 @@ function ensureTemplateName(name) {
   return `${name}.template`;
 }
 
+function isTemplatePath(path) {
+  return String(path || "").toLowerCase().endsWith(".template");
+}
+
+function isDefaultTemplatePath(path) {
+  const normalized = String(path || "").toLowerCase();
+  return normalized === "default.template" || normalized.endsWith("/default.template");
+}
+
 function formatDailyDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -7099,26 +7519,7 @@ async function createNote(parentPath = "") {
 async function editTemplate(parentPath = "") {
   const templateName = "default.template";
   const path = parentPath ? `${parentPath}/${templateName}` : templateName;
-  try {
-    const data = await apiFetch("/notes", {
-      method: "POST",
-      body: JSON.stringify({
-        path,
-        content: "",
-      }),
-    });
-    if (data.notice) {
-      alert(data.notice);
-    }
-    await loadTree();
-    await openNote(data.path);
-  } catch (err) {
-    if (String(err.message || "").toLowerCase().includes("already exists")) {
-      await openNote(path);
-      return;
-    }
-    alert(err.message);
-  }
+  openTemplatesModal({ path });
 }
 
 async function renameNote(path) {
@@ -7538,6 +7939,11 @@ settingsBtn.addEventListener("click", () => {
   hideContextMenu();
   showSettings();
 });
+if (templatesOpenBtn) {
+  templatesOpenBtn.addEventListener("click", () => {
+    openTemplatesModal();
+  });
+}
 
 if (emailTestBtn) {
   emailTestBtn.addEventListener("click", async () => {
@@ -8038,6 +8444,12 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isTemplatesModalOpen()) {
+    closeTemplatesModal();
+  }
+});
+
 if (inboxDialogBackdrop) {
   inboxDialogBackdrop.addEventListener("click", () => closeInboxDialog());
 }
@@ -8153,6 +8565,82 @@ if (taskFiltersCancel) {
 if (taskFiltersSave) {
   taskFiltersSave.addEventListener("click", async () => {
     await saveTaskFiltersFromModal();
+  });
+}
+
+if (templatesModalBackdrop) {
+  templatesModalBackdrop.addEventListener("click", () => {
+    closeTemplatesModal();
+  });
+}
+
+if (templatesClose) {
+  templatesClose.addEventListener("click", () => {
+    closeTemplatesModal();
+  });
+}
+
+if (templatesSearch) {
+  templatesSearch.addEventListener("input", () => renderTemplatesList());
+}
+
+if (templatesNewBtn) {
+  templatesNewBtn.addEventListener("click", () => {
+    createTemplateFile();
+  });
+}
+
+if (templatesSaveBtn) {
+  templatesSaveBtn.addEventListener("click", async () => {
+    await saveTemplateEdits();
+  });
+}
+
+if (templatesRevertBtn) {
+  templatesRevertBtn.addEventListener("click", () => {
+    revertTemplateEdits();
+  });
+}
+
+if (templatesDeleteBtn) {
+  templatesDeleteBtn.addEventListener("click", async () => {
+    await deleteTemplateFile();
+  });
+}
+
+if (templatesCreateBtn) {
+  templatesCreateBtn.addEventListener("click", async () => {
+    if (!activeTemplatePath) {
+      return;
+    }
+    if (templatesDirty) {
+      const confirmContinue = window.confirm(
+        "You have unsaved template changes. Continue without saving?"
+      );
+      if (!confirmContinue) {
+        return;
+      }
+      templatesDirty = false;
+      updateTemplateActionState();
+    }
+    await createNoteFromTemplate(activeTemplatePath);
+    closeTemplatesModal();
+  });
+}
+
+if (templatesEditor) {
+  templatesEditor.addEventListener("input", () => {
+    if (!activeTemplatePath) {
+      return;
+    }
+    templatesDirty = true;
+    updateTemplateActionState();
+  });
+  templatesEditor.addEventListener("keydown", async (event) => {
+    if (event.key === "s" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      await saveTemplateEdits();
+    }
   });
 }
 
