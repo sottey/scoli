@@ -256,11 +256,42 @@ function updateSidebarToggle() {
   sidebarToggle.setAttribute("aria-label", sidebarToggle.title);
 }
 
+function updateRootTooltips() {
+  if (!treeContainer) {
+    return;
+  }
+  const collapsed = isSidebarCollapsed();
+  const rootRowSelectors = [
+    ".tree-node.inbox-root > .node-row",
+    ".tree-node.note-root > .node-row",
+    ".tree-node.daily-root > .node-row",
+    ".tree-node.sheets-root > .node-row",
+    ".tree-node.task-root > .node-row",
+    ".tree-node.journal-root > .node-row",
+    ".tree-node.ai-root > .node-row",
+    ".tree-node.tag-root > .node-row",
+    ".tree-node.mention-root > .node-row",
+  ];
+  treeContainer.querySelectorAll(rootRowSelectors.join(",")).forEach((row) => {
+    const label = row.querySelector(".node-name");
+    const text = label ? label.textContent.trim() : "";
+    if (collapsed && text) {
+      row.title = text;
+    } else {
+      row.removeAttribute("title");
+    }
+  });
+}
+
 function toggleSidebarCollapse() {
   if (isMobileView()) {
     return;
   }
   app.classList.toggle("sidebar-collapsed");
+  if (isSidebarCollapsed()) {
+    collapseAllTreeNodes();
+  }
+  updateRootTooltips();
   updateSidebarToggle();
 }
 
@@ -300,6 +331,7 @@ function updateMobileLayout() {
     app.classList.remove("sidebar-open");
   }
   updateSidebarToggle();
+  updateRootTooltips();
 }
 
 function escapeHtml(value) {
@@ -5037,7 +5069,8 @@ function buildInboxNode() {
   icon.className = "folder-icon";
   icon.addEventListener("click", (event) => {
     event.stopPropagation();
-    wrapper.classList.toggle("collapsed");
+    hideContextMenu();
+    openNote(inboxNotePath);
   });
   row.appendChild(icon);
 
@@ -5411,6 +5444,7 @@ function renderTree(tree, tags, mentions, tasks, taskFilters) {
     treeContainer.appendChild(mentionRoot);
   }
   setActiveNode(currentActivePath);
+  updateRootTooltips();
 }
 
 function getExpandedTreePaths() {
