@@ -1,9 +1,9 @@
 {
-  "version": 7,
+  "version": 8,
   "darkMode": true,
   "defaultView": "split",
   "sidebarWidth": 300,
-  "defaultFolder": "Inbox",
+  "startOnToday": true,
   "showTemplates": false,
   "showAiNode": true,
   "notesSortBy": "name",

@@ -313,7 +313,7 @@ fields:
 - `darkMode` (bool)
 - `defaultView` (`edit`, `preview`, `split`)
 - `sidebarWidth`
-- `defaultFolder`
+- `startOnToday` (bool)
 - `showTemplates`
 - `showAiNode`
 - `rootIcons` (map of root node keys to icon paths)

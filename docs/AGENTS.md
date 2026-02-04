@@ -116,8 +116,8 @@ This file documents the current project shape and interaction model.
 - Render the journal root and feed view.
 - Render the Markdown editor, preview, and split view with draggable splitter.
 - Task list rows include a checkbox toggle and open the source note on click.
-- Render a settings form with sections for Display (dark mode, default view, show templates, show AI node),
-  Notes (sort by, sort order), Folders (default folder), and Email (SMTP config,
+- Render a settings form with sections for Display (dark mode, default view, start on today's note, show templates, show AI node),
+  Notes (sort by, sort order), and Email (SMTP config,
   digest time, due time, and notification toggles).
 - The date pill always opens notes in `Daily/`.
 - Ensure tag labels remain legible in dark mode.

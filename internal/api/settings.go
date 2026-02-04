@@ -43,7 +43,7 @@ type Settings struct {
 	DarkMode             bool              `json:"darkMode"`
 	DefaultView          string            `json:"defaultView"`
 	SidebarWidth         int               `json:"sidebarWidth"`
-	DefaultFolder        string            `json:"defaultFolder"`
+	StartOnToday         bool              `json:"startOnToday"`
 	ShowTemplates        bool              `json:"showTemplates"`
 	ShowAiNode           bool              `json:"showAiNode"`
 	NotesSortBy          string            `json:"notesSortBy"`
@@ -62,7 +62,7 @@ type SettingsPayload struct {
 	DarkMode             *bool   `json:"darkMode,omitempty"`
 	DefaultView          *string `json:"defaultView,omitempty"`
 	SidebarWidth         *int    `json:"sidebarWidth,omitempty"`
-	DefaultFolder        *string `json:"defaultFolder,omitempty"`
+	StartOnToday         *bool   `json:"startOnToday,omitempty"`
 	ShowTemplates        *bool   `json:"showTemplates,omitempty"`
 	ShowAiNode           *bool   `json:"showAiNode,omitempty"`
 	NotesSortBy          *string `json:"notesSortBy,omitempty"`
@@ -107,7 +107,7 @@ func (s *Server) handleSettingsUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changed := make([]string, 0, 8)
+	changed := make([]string, 0, 9)
 	if payload.DarkMode != nil {
 		settings.DarkMode = *payload.DarkMode
 		changed = append(changed, "darkMode")
@@ -120,9 +120,9 @@ func (s *Server) handleSettingsUpdate(w http.ResponseWriter, r *http.Request) {
 		settings.SidebarWidth = *payload.SidebarWidth
 		changed = append(changed, "sidebarWidth")
 	}
-	if payload.DefaultFolder != nil {
-		settings.DefaultFolder = *payload.DefaultFolder
-		changed = append(changed, "defaultFolder")
+	if payload.StartOnToday != nil {
+		settings.StartOnToday = *payload.StartOnToday
+		changed = append(changed, "startOnToday")
 	}
 	if payload.ShowTemplates != nil {
 		settings.ShowTemplates = *payload.ShowTemplates
@@ -163,11 +163,11 @@ func (s *Server) loadSettings() (Settings, string, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			settings := Settings{
-				Version:              7,
+				Version:              8,
 				DarkMode:             false,
 				DefaultView:          "split",
 				SidebarWidth:         300,
-				DefaultFolder:        "",
+				StartOnToday:         false,
 				ShowTemplates:        true,
 				ShowAiNode:           true,
 				NotesSortBy:          notesSortByName,
@@ -206,9 +206,6 @@ func (s *Server) loadSettings() (Settings, string, error) {
 	if settings.SidebarWidth == 0 {
 		settings.SidebarWidth = 300
 	}
-	if settings.DefaultFolder == "." {
-		settings.DefaultFolder = ""
-	}
 	if settings.Version < 2 {
 		settings.ShowTemplates = true
 		settings.Version = 2
@@ -236,6 +233,9 @@ func (s *Server) loadSettings() (Settings, string, error) {
 	if settings.Version < 7 {
 		settings.ShowAiNode = true
 		settings.Version = 7
+	}
+	if settings.Version < 8 {
+		settings.Version = 8
 	}
 	if settings.RootIcons == nil {
 		settings.RootIcons = map[string]string{}
@@ -276,13 +276,6 @@ func validateSettingsPayload(payload SettingsPayload) error {
 		if !isValidNotesSortOrder(*payload.NotesSortOrder) {
 			return errors.New("notesSortOrder must be asc or desc")
 		}
-	}
-	if payload.DefaultFolder != nil {
-		cleaned, err := cleanRelPath(*payload.DefaultFolder)
-		if err != nil {
-			return err
-		}
-		*payload.DefaultFolder = cleaned
 	}
 	if payload.ExternalCommandsPath != nil {
 		cleaned, err := cleanRelPath(*payload.ExternalCommandsPath)

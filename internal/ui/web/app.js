@@ -62,7 +62,7 @@ const settingsPanel = document.getElementById("settings-panel");
 const brandBtn = document.getElementById("brand-btn");
 const settingsDarkMode = document.getElementById("settings-dark-mode");
 const settingsDefaultView = document.getElementById("settings-default-view");
-const settingsDefaultFolder = document.getElementById("settings-default-folder");
+const settingsStartOnToday = document.getElementById("settings-start-on-today");
 const settingsShowTemplates = document.getElementById("settings-show-templates");
 const settingsShowAiNode = document.getElementById("settings-show-ai-node");
 const settingsNotesSortBy = document.getElementById("settings-notes-sort-by");
@@ -610,13 +610,17 @@ function maybeShowWhatsNew() {
 
 function handleStartupShortcut() {
   if (startupShortcutHandled) {
-    return;
+    return false;
   }
   startupShortcutHandled = true;
   const url = new URL(window.location.href);
   const shortcut = url.searchParams.get("shortcut");
   if (!shortcut) {
-    return;
+    if (currentSettings.startOnToday && !currentActivePath) {
+      openDailyNote();
+      return true;
+    }
+    return false;
   }
   if (shortcut === "inbox") {
     openNote(inboxNotePath);
@@ -631,6 +635,7 @@ function handleStartupShortcut() {
   }
   url.searchParams.delete("shortcut");
   window.history.replaceState({}, "", url.pathname + url.search);
+  return true;
 }
 
 function renderMarkdown(text) {
@@ -2949,7 +2954,7 @@ function applySettings(settings) {
     darkMode: !!settings.darkMode,
     defaultView: getDefaultView(settings.defaultView),
     sidebarWidth: Number(settings.sidebarWidth) || 300,
-    defaultFolder: settings.defaultFolder || "",
+    startOnToday: settings.startOnToday === true,
     showTemplates: settings.showTemplates !== false,
     showAiNode: settings.showAiNode !== false,
     notesSortBy: settings.notesSortBy || "name",
@@ -2964,8 +2969,8 @@ function applySettings(settings) {
   if (settingsDefaultView) {
     settingsDefaultView.value = currentSettings.defaultView;
   }
-  if (settingsDefaultFolder) {
-    settingsDefaultFolder.value = currentSettings.defaultFolder;
+  if (settingsStartOnToday) {
+    settingsStartOnToday.checked = currentSettings.startOnToday;
   }
   if (settingsShowTemplates) {
     settingsShowTemplates.checked = currentSettings.showTemplates;
@@ -3129,8 +3134,8 @@ function showSettings() {
   if (settingsDefaultView) {
     settingsDefaultView.value = currentSettings.defaultView || "preview";
   }
-  if (settingsDefaultFolder) {
-    settingsDefaultFolder.value = currentSettings.defaultFolder || "";
+  if (settingsStartOnToday) {
+    settingsStartOnToday.checked = currentSettings.startOnToday === true;
   }
   if (settingsShowTemplates) {
     settingsShowTemplates.checked = currentSettings.showTemplates;
@@ -3153,7 +3158,7 @@ async function saveSettings() {
   if (
     !settingsDarkMode ||
     !settingsDefaultView ||
-    !settingsDefaultFolder ||
+    !settingsStartOnToday ||
     !settingsShowTemplates ||
     !settingsShowAiNode ||
     !settingsNotesSortBy ||
@@ -3168,7 +3173,7 @@ async function saveSettings() {
       darkMode: settingsDarkMode.checked,
       defaultView: settingsDefaultView.value,
       sidebarWidth: currentSettings.sidebarWidth || 300,
-      defaultFolder: settingsDefaultFolder.value.trim(),
+      startOnToday: settingsStartOnToday.checked,
       showTemplates: settingsShowTemplates.checked,
       showAiNode: settingsShowAiNode.checked,
       notesSortBy: settingsNotesSortBy.value,
@@ -5788,7 +5793,6 @@ async function loadTree(path = "") {
       }
     }
     if (currentTree && currentTree.type === "folder" && currentTree.children) {
-      const defaultFolder = (currentSettings.defaultFolder || "").trim();
       const isTagPath = previousActivePath === "__tags__" || previousActivePath === "__mentions__";
       let targetNode = null;
       if (!isTagPath) {
@@ -5799,7 +5803,7 @@ async function loadTree(path = "") {
         }
       }
       if (!targetNode) {
-        targetNode = defaultFolder ? findFolderNode(currentTree, defaultFolder) : currentTree;
+        targetNode = currentTree;
       }
       const counts = countTreeItems(targetNode || currentTree);
       currentActivePath = targetNode ? targetNode.path : "";
@@ -8048,12 +8052,12 @@ if (settingsDefaultView) {
   });
 }
 
-if (settingsDefaultFolder) {
-  settingsDefaultFolder.addEventListener("input", () => {
+if (settingsStartOnToday) {
+  settingsStartOnToday.addEventListener("change", () => {
     if (currentMode !== "settings") {
       return;
     }
-    currentSettings.defaultFolder = settingsDefaultFolder.value.trim();
+    currentSettings.startOnToday = settingsStartOnToday.checked;
     markSettingsDirty();
   });
 }

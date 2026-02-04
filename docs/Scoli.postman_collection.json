@@ -255,7 +255,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"darkMode\": true,\n  \"defaultView\": \"edit\",\n  \"sidebarWidth\": 320,\n  \"defaultFolder\": \"Projects\",\n  \"showTemplates\": true\n}",
+          "raw": "{\n  \"darkMode\": true,\n  \"defaultView\": \"edit\",\n  \"sidebarWidth\": 320,\n  \"startOnToday\": true,\n  \"showTemplates\": true\n}",
           "options": {
             "raw": { "language": "json" }
           }

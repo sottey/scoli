@@ -120,11 +120,11 @@ data can include trailing empty rows.
 
 ```json
 {
-  "version": 7,
+  "version": 8,
   "darkMode": false,
   "defaultView": "split",
   "sidebarWidth": 300,
-  "defaultFolder": "",
+  "startOnToday": false,
   "showTemplates": true,
   "showAiNode": true,
   "notesSortBy": "name",
@@ -929,11 +929,11 @@ Response:
 ```json
 {
   "settings": {
-    "version": 7,
+    "version": 8,
     "darkMode": false,
     "defaultView": "split",
     "sidebarWidth": 300,
-    "defaultFolder": "",
+    "startOnToday": false,
     "showTemplates": true,
     "showAiNode": true,
     "notesSortBy": "name",
@@ -964,7 +964,7 @@ Body (any subset of fields):
   "darkMode": true,
   "defaultView": "edit",
   "sidebarWidth": 320,
-  "defaultFolder": "Projects",
+  "startOnToday": true,
   "showTemplates": true,
   "showAiNode": true,
   "notesSortBy": "updated",
@@ -1139,11 +1139,11 @@ Response:
 
 ```json
 {
-  "version": 6,
+  "version": 8,
   "darkMode": true,
   "defaultView": "edit",
   "sidebarWidth": 320,
-  "defaultFolder": "Projects",
+  "startOnToday": true,
   "showTemplates": true,
   "notesSortBy": "updated",
   "notesSortOrder": "desc",

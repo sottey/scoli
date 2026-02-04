@@ -728,8 +728,8 @@ func TestSettingsCRUD(t *testing.T) {
 	if settingsResp.Settings.SidebarWidth != 300 {
 		t.Fatalf("expected sidebarWidth 300, got %d", settingsResp.Settings.SidebarWidth)
 	}
-	if settingsResp.Settings.DefaultFolder != "" {
-		t.Fatalf("expected defaultFolder empty, got %q", settingsResp.Settings.DefaultFolder)
+	if settingsResp.Settings.StartOnToday {
+		t.Fatalf("expected startOnToday false by default")
 	}
 	if !settingsResp.Settings.ShowAiNode {
 		t.Fatalf("expected showAiNode true by default")
@@ -739,10 +739,10 @@ func TestSettingsCRUD(t *testing.T) {
 	}
 
 	rec = doRequest(t, router, http.MethodPatch, "/settings", map[string]any{
-		"darkMode":      true,
-		"defaultView":   "preview",
-		"sidebarWidth":  280,
-		"defaultFolder": "Projects",
+		"darkMode":     true,
+		"defaultView":  "preview",
+		"sidebarWidth": 280,
+		"startOnToday": true,
 	})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", rec.Code)
@@ -758,8 +758,8 @@ func TestSettingsCRUD(t *testing.T) {
 	if updated.SidebarWidth != 280 {
 		t.Fatalf("expected sidebarWidth 280, got %d", updated.SidebarWidth)
 	}
-	if updated.DefaultFolder != "Projects" {
-		t.Fatalf("expected defaultFolder Projects, got %q", updated.DefaultFolder)
+	if !updated.StartOnToday {
+		t.Fatalf("expected startOnToday true")
 	}
 
 	rec = doRequest(t, router, http.MethodGet, "/settings", nil)
@@ -777,8 +777,8 @@ func TestSettingsCRUD(t *testing.T) {
 	if settingsResp.Settings.SidebarWidth != 280 {
 		t.Fatalf("expected sidebarWidth 280 from settings")
 	}
-	if settingsResp.Settings.DefaultFolder != "Projects" {
-		t.Fatalf("expected defaultFolder Projects from settings")
+	if !settingsResp.Settings.StartOnToday {
+		t.Fatalf("expected startOnToday true from settings")
 	}
 }
 
