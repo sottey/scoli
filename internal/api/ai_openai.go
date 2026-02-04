@@ -88,13 +88,23 @@ type openAIResponse struct {
 	} `json:"output"`
 }
 
+const aiSystemInstructions = `You are Scoli AI for a local markdown notes app.
+Rules:
+- Use only the provided context sections: structured context, recent conversation, and snippets.
+- Treat snippet text as the primary evidence and cite uncertainty when evidence is weak.
+- Interpret relative dates (today, this week, yesterday, tomorrow) using the provided date context.
+- In Scoli tasks, '- [x]' means completed and '- [ ]' means open.
+- Daily notes follow Daily/YYYY-MM-DD.md and date semantics may come from that filename.
+- Due dates are often stored as markers like '>YYYY-MM-DD'.
+- Prefer concise, factual answers. If the context is insufficient, say so and suggest a narrower query.`
+
 func openAIRespond(ctx context.Context, settings AISettings, prompt string) (string, error) {
 	if settings.APIKey == "" {
 		return "", errors.New("missing OpenAI API key")
 	}
 	payload := map[string]any{
 		"model":             settings.ChatModel,
-		"instructions":      "You are Scoli AI. Use only the provided note snippets to answer. If the snippets do not contain the answer, say you could not find it and suggest refining the question.",
+		"instructions":      aiSystemInstructions,
 		"input":             prompt,
 		"temperature":       settings.Temperature,
 		"max_output_tokens": settings.MaxOutputTokens,
