@@ -1207,6 +1207,15 @@ body.theme-dark .task-chip.invalid {
   color: var(--muted);
 }
 
+.settings-link {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.settings-link:hover {
+  text-decoration: underline;
+}
+
 .settings-section-header {
   display: flex;
   flex-direction: column;
