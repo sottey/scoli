@@ -2,6 +2,7 @@ FROM --platform=$BUILDPLATFORM golang:1.25.6-alpine AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
+ARG TARGETVARIANT
 ARG BUILD_GIT_TAG
 ARG BUILD_DOCKER_TAG
 ARG BUILD_COMMIT_SHA
@@ -12,7 +13,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH GOFLAGS="-p=1" GOMAXPROCS=2 \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+  GOARM="$( [ "$TARGETARCH" = "arm" ] && echo "${TARGETVARIANT#v}" || true )" \
+  GOFLAGS="-p=1" GOMAXPROCS=2 \
   go build -ldflags="-s -w -X 'github.com/sottey/scoli/internal/api.BuildGitTag=${BUILD_GIT_TAG}' -X 'github.com/sottey/scoli/internal/api.BuildDockerTag=${BUILD_DOCKER_TAG}' -X 'github.com/sottey/scoli/internal/api.BuildCommitSHA=${BUILD_COMMIT_SHA}'" \
   -o /out/scoli ./cmd/scoli
 RUN mkdir -p /notes /notes-seed
